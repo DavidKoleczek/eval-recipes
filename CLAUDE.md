@@ -83,8 +83,6 @@ Push for extreme simplicity in these areas:
   ```
 - When writing tests, use pytest and pytest-asyncio.
   - The pyproject.toml is already configured so you do not need to add the `@pytest.mark.asyncio` decorator.
-- Prefer to use pendulum instead of datetime. Use @../../ai_context/PENDULUM.md to understand the library.
-- Prefer to use pendulum instead of datetime
 - Prefer to use loguru instead of logging
 - Follow Ruff best practices such as:
   - Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
