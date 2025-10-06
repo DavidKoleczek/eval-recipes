@@ -1,19 +1,16 @@
 # Copyright (c) Microsoft. All rights reserved.
 
 from datetime import UTC, datetime
-import io
-from io import BytesIO
 import json
 from pathlib import Path
-import tarfile
 from typing import Any
 import uuid
 
-import docker
 from liquid import Template
 from loguru import logger
 import yaml
 
+from eval_recipes.benchmarking.docker_manager import DockerManager
 from eval_recipes.benchmarking.schemas import AgentConfig, TaskConfig, TaskInfo, TestResult
 
 
@@ -31,22 +28,27 @@ class Harness:
         Args:
             agents_dir: Path to agents directory (default: data/agents/)
             tasks_dir: Path to tasks directory (default: data/tasks/)
-            runs_dir: Path to runs directory (default: data/benchmarking/runs/<timestamp>/)
+            runs_dir: Path to base runs directory (default: data/benchmarking/runs/).
+                     A timestamped subdirectory will be created under this path.
             environment: Environment variables to pass to containers
         """
         repo_root = Path(__file__).parents[2]
         self.agents_dir = agents_dir or repo_root / "data" / "agents"
         self.tasks_dir = tasks_dir or repo_root / "data" / "tasks"
-        if runs_dir is None:
-            timestamp = datetime.now(UTC).strftime("%Y-%m-%d_%H-%M-%S")
-            self.runs_dir = repo_root / "data" / "benchmarking" / "runs" / timestamp
-        else:
-            self.runs_dir = runs_dir
+
+        # Always create a timestamped directory under runs_dir
+        base_runs_dir = runs_dir or repo_root / "data" / "benchmarking" / "runs"
+        timestamp = datetime.now(UTC).strftime("%Y-%m-%d_%H-%M-%S-%f")[:-3]
+        self.runs_dir = base_runs_dir / timestamp
         self.runs_dir.mkdir(parents=True, exist_ok=True)
+
         self.base_template = Path(__file__).parents[0] / "base.dockerfile"
         self.environment = environment or {}
 
     def _load_agents(self) -> list[AgentConfig]:
+        """
+        Loads agent configurations from the agents directory.
+        """
         agents = []
         if not self.agents_dir.exists():
             logger.warning(f"Agents directory {self.agents_dir} does not exist.")
@@ -78,6 +80,9 @@ class Harness:
         return agents
 
     def _load_tasks(self) -> list[TaskConfig]:
+        """
+        Loads task configurations from the tasks directory.
+        """
         tasks = []
         if not self.tasks_dir.exists():
             logger.warning(f"Tasks directory {self.tasks_dir} does not exist.")
@@ -152,110 +157,57 @@ class Harness:
             task_installation=task.task_installation,
         )
 
-    def _run_tests(self, container: Any, task: TaskConfig, run_dir: Path) -> TestResult | None:
+    def _run_tests(
+        self, container: Any, task: TaskConfig, run_dir: Path, docker_manager: DockerManager
+    ) -> TestResult | None:
         """Run test script in container and return results."""
         try:
-            # Generate unique test ID
+            # Generate unique test ID - this is to make sure we can identify result files uniquely in the container
             test_id = str(uuid.uuid4())
             logger.info(f"Running tests with ID: {test_id}")
 
-            # Create tar archive with test script and optional test_commands.sh
-            tar_stream = io.BytesIO()
-            with tarfile.open(fileobj=tar_stream, mode="w") as tar:
-                # Add test.py
-                test_script_content = task.test_script.read_bytes()
-                tarinfo = tarfile.TarInfo(name="test.py")
-                tarinfo.size = len(test_script_content)
-                tar.addfile(tarinfo, io.BytesIO(test_script_content))
-
-                # Add test_commands.sh if it exists
-                if task.test_commands_script and task.test_commands_script.exists():
-                    test_commands_content = task.test_commands_script.read_bytes()
-                    tarinfo = tarfile.TarInfo(name="test_commands.sh")
-                    tarinfo.size = len(test_commands_content)
-                    tarinfo.mode = 0o755  # Make it executable
-                    tar.addfile(tarinfo, io.BytesIO(test_commands_content))
-
-            tar_stream.seek(0)
-
-            # Copy files into container
-            container.put_archive("/project", tar_stream)
-            logger.info("Copied test script into container")
-
-            # Run test_commands.sh if it exists
+            # Copy the test script and the installation script (if any)
+            files = {"test.py": task.test_script.read_bytes()}
+            executable_files = set()
             if task.test_commands_script and task.test_commands_script.exists():
-                logger.info("Running test_commands.sh...")
-                commands_output_file = run_dir / "test_commands_output.log"
-                exec_result = container.exec_run(
-                    cmd=["bash", "/project/test_commands.sh"],
-                    stream=True,
-                    demux=True,
-                    workdir="/project",
-                )
-
-                # Collect and save test_commands.sh output
-                with commands_output_file.open("wb") as f:
-                    for chunk in exec_result.output:
-                        if chunk:
-                            if isinstance(chunk, tuple):
-                                stdout, stderr = chunk
-                                if stdout:
-                                    f.write(stdout)
-                                if stderr:
-                                    f.write(stderr)
-                            else:
-                                f.write(chunk)
-
-                logger.info(f"test_commands.sh output saved to: {commands_output_file}")
-
-            # Execute test using uv run with test ID environment variable
-            logger.info("Running tests with uv...")
-            exec_result = container.exec_run(
-                cmd=["uv", "run", "--no-project", "/project/test.py"],
-                stream=True,
-                demux=True,
-                environment={"EVAL_RECIPES_TEST_ID": test_id},
+                files["test_commands.sh"] = task.test_commands_script.read_bytes()
+                executable_files.add("test_commands.sh")
+            docker_manager.copy_files_to_container(
+                container=container, files=files, dest_path="/project", executable_files=executable_files
             )
 
-            # Collect output
-            test_output_lines = []
-            test_output_file = run_dir / "test_output.log"
-            with test_output_file.open("wb") as f:
-                for chunk in exec_result.output:
-                    if chunk:
-                        if isinstance(chunk, tuple):
-                            stdout, stderr = chunk
-                            if stdout:
-                                f.write(stdout)
-                                test_output_lines.append(stdout.decode("utf-8", errors="ignore"))
-                            if stderr:
-                                f.write(stderr)
-                                test_output_lines.append(stderr.decode("utf-8", errors="ignore"))
-                        else:
-                            f.write(chunk)
-                            test_output_lines.append(chunk.decode("utf-8", errors="ignore"))
+            # Run test install script
+            if task.test_commands_script and task.test_commands_script.exists():
+                _exec_result, _commands_output = docker_manager.exec_command(
+                    container=container,
+                    command=["bash", "/project/test_commands.sh"],
+                    log_filename="test_install_output.log",
+                    workdir="/project",
+                )
+                logger.info(f"test_commands.sh output saved to: {run_dir / 'test_install_output.log'}")
 
-            logger.info(f"Test output saved to: {test_output_file}")
-            full_output = "".join(test_output_lines)
+            # Execute test using uv run with test ID environment variable
+            _exec_result, full_output = docker_manager.exec_command(
+                container=container,
+                command=["uv", "run", "--no-project", "/project/test.py"],
+                log_filename="test_output.log",
+                environment={"EVAL_RECIPES_TEST_ID": test_id},
+            )
+            logger.info(f"Test output saved to: {run_dir / 'test_output.log'}")
 
             # Read result file from container
             result_file_path = f"/project/.eval_recipes_test_results_{test_id}.json"
-            result = container.exec_run(["cat", result_file_path])
-
-            if result.exit_code == 0:
-                logger.info("Successfully read results file from container")
-                result_data = json.loads(result.output)
+            result_output = docker_manager.read_file_from_container(container, result_file_path)
+            if result_output:
+                result_data = json.loads(result_output)
                 test_result = TestResult(
                     score=result_data["score"],
                     metadata=result_data.get("metadata", {}),
                     test_output=full_output,
                 )
-
-                # Save test results to JSON file
                 results_file = run_dir / "test_results.json"
                 results_file.write_text(json.dumps(result_data, indent=2))
                 logger.info(f"Test score: {test_result.score}, metadata: {test_result.metadata}")
-
                 return test_result
             else:
                 logger.warning(f"Could not read results file: {result_file_path}")
@@ -267,7 +219,6 @@ class Harness:
                     test_output=full_output,
                 )
                 return test_result
-
         except Exception as e:
             logger.error(f"Failed to run tests: {e}")
             return None
@@ -276,123 +227,41 @@ class Harness:
         agents = self._load_agents()
         tasks = self._load_tasks()
 
-        client = docker.from_env()
-        try:
-            for agent in agents:
-                for task in tasks:
-                    logger.info(f"Running agent '{agent.name}' on task '{task.name}'")
+        for agent in agents:
+            for task in tasks:
+                logger.info(f"Running agent '{agent.name}' on task '{task.name}'")
 
-                    # Validate required environment variables
-                    valid, missing_vars = self._validate_required_env_vars(agent, task)
-                    if not valid:
-                        logger.error(
-                            f"Missing required environment variables for agent '{agent.name}' "
-                            f"and task '{task.name}': {missing_vars}"
-                        )
-                        continue
+                valid, missing_vars = self._validate_required_env_vars(agent, task)
+                if not valid:
+                    logger.error(
+                        f"Missing required environment variables for agent '{agent.name}' "
+                        f"and task '{task.name}': {missing_vars}"
+                    )
+                    continue
 
-                    dockerfile_content = self._build_dockerfile(agent, task)
+                run_dir = self.runs_dir / f"{agent.name}_{task.name}"
+                run_dir.mkdir(parents=True, exist_ok=True)
 
-                    image_tag = f"benchmark-{agent.name}-{task.name}".lower()
-                    try:
-                        _, _ = client.images.build(
-                            fileobj=BytesIO(dockerfile_content.encode()),
-                            tag=image_tag,
-                            rm=True,
-                        )
+                container_env = self._get_container_env_vars(agent, task)
+                dockerfile_content = self._build_dockerfile(agent, task)
+                image_tag = f"benchmark-{agent.name}-{task.name}".lower()
+                with DockerManager(
+                    log_dir=run_dir, dockerfile=dockerfile_content, image_tag=image_tag, container_env=container_env
+                ) as docker_manager:
+                    assert docker_manager.container is not None
+                    logger.info(f"Built image: {docker_manager.actual_image_tag}")
+                    logger.info(f"Container {docker_manager.container_id} started")
 
-                        # Get environment variables to pass to container
-                        container_env = self._get_container_env_vars(agent, task)
+                    # Create command to run agent
+                    command_template = Template(agent.command_template)
+                    command = command_template.render(task_instructions=task.instructions)
+                    logger.info(f"Executing command: {command}")
 
-                        container = client.containers.run(
-                            image=image_tag,
-                            detach=True,
-                            environment=container_env,
-                            tty=True,
-                            stdin_open=True,
-                        )
-                        if container:
-                            container_id = getattr(container, "id", None)
-                            if container_id:
-                                logger.info(f"Container {container_id[:12]} started")
+                    _exec_result, _exec_logs = docker_manager.exec_command(
+                        container=docker_manager.container,
+                        command=["bash", "-c", command],
+                        log_filename="agent_output.log",
+                    )
+                    logger.info(f"Command execution completed. Output saved to: {run_dir / 'agent_output.log'}")
 
-                            # Create run directory
-                            run_dir = self.runs_dir / f"{agent.name}_{task.name}"
-                            run_dir.mkdir(parents=True, exist_ok=True)
-                            output_file = run_dir / "output.log"
-
-                            # Render command from template
-                            command_template = Template(agent.command_template)
-                            command = command_template.render(task_instructions=task.instructions)
-
-                            logger.info(f"Executing command: {command}")
-                            logger.info(f"Streaming output to: {output_file}")
-
-                            # Execute command and stream output
-                            exec_result = container.exec_run(
-                                cmd=["bash", "-c", command],
-                                stream=True,
-                                demux=True,
-                            )
-
-                            # Stream output to file
-                            with output_file.open("wb") as f:
-                                for chunk in exec_result.output:
-                                    if chunk:
-                                        if isinstance(chunk, tuple):
-                                            # demux=True returns (stdout, stderr) tuples
-                                            stdout, stderr = chunk
-                                            if stdout:
-                                                f.write(stdout)
-                                            if stderr:
-                                                f.write(stderr)
-                                        else:
-                                            f.write(chunk)
-
-                            logger.info("Command execution completed")
-
-                            # Get final logs
-                            logs = container.logs()
-                            if logs:
-                                logs_file = run_dir / "container.log"
-                                logs_file.write_bytes(logs)
-                                logger.info(f"Container logs saved to: {logs_file}")
-
-                            # Run tests
-                            test_result = self._run_tests(container, task, run_dir)
-                            if test_result:
-                                logger.info(f"Tests completed - Score: {test_result.score}")
-                            else:
-                                logger.warning("Tests failed or could not be parsed")
-
-                            # Clean up container
-                            try:
-                                container.remove(force=True)
-                                if container_id:
-                                    logger.info(f"Container {container_id[:12]} removed")
-                            except Exception as e:
-                                logger.warning(f"Failed to remove container: {e}")
-                    finally:
-                        try:
-                            client.images.remove(image_tag, force=True)
-                        except Exception as e:
-                            logger.warning(f"Failed to remove image {image_tag}: {e}")
-        finally:
-            client.close()
-
-
-if __name__ == "__main__":
-    import asyncio
-    import os
-
-    from dotenv import load_dotenv
-
-    load_dotenv()
-
-    harness = Harness(
-        environment={
-            "ANTHROPIC_API_KEY": os.environ["ANTHROPIC_API_KEY"],
-            "OPENAI_API_KEY": os.environ["OPENAI_API_KEY"],
-        }
-    )
-    asyncio.run(harness.run())
+                    self._run_tests(docker_manager.container, task, run_dir, docker_manager)
