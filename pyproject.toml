@@ -8,6 +8,7 @@ requires-python = ">=3.11"
 dependencies = [
     "azure-core[aio]>=1.35,<2.0",
     "azure-identity>=1.24,<2.0",
+    "claude-agent-sdk==0.1.1",
     "click>=8.3,<9.0",
     "docker>=7.1,<8.0",
     "loguru>=0.7,<1.0",
@@ -43,6 +44,7 @@ line-length = 120
 exclude = [
     "demos",
     "data",
+    "ai_context",
 ]
 
 [tool.ruff.lint]
@@ -104,5 +106,5 @@ auto_instantiate=false
 on_cell_change="lazy"
 
 [tool.pyright]
-ignore = ["demos", "data"]
+ignore = ["demos", "ai_context"]
 typeCheckingMode = "standard"

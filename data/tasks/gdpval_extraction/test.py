@@ -11,11 +11,19 @@ Checks:
 
 import asyncio
 import csv
-import json
-import os
+import io
 import sys
 from pathlib import Path
 
+import click
+
+from eval_recipes.benchmarking.test_utils import (
+    get_instructions_from_file_or_default,
+    get_test_id_from_env_or_default,
+    levenshtein_distance,
+    load_text_from_path_or_content,
+    write_test_result,
+)
 from eval_recipes.evaluations.claim_verification.claim_verification_evaluator import (
     ClaimVerificationEvaluator,
     ClaimVerificationEvaluatorConfig,
@@ -51,46 +59,11 @@ This event is critical to the performance of your team, your store, and the over
 LEVENSHTEIN_BUFFER = 5
 
 
-def levenshtein_distance(s1: str, s2: str) -> int:
-    """Calculate the Levenshtein distance between two strings."""
-    if len(s1) < len(s2):
-        return levenshtein_distance(s2, s1)
-
-    if len(s2) == 0:
-        return len(s1)
-
-    previous_row = range(len(s2) + 1)
-    for i, c1 in enumerate(s1):
-        current_row = [i + 1]
-        for j, c2 in enumerate(s2):
-            insertions = previous_row[j + 1] + 1
-            deletions = current_row[j] + 1
-            substitutions = previous_row[j] + (c1 != c2)
-            current_row.append(min(insertions, deletions, substitutions))
-        previous_row = current_row
-
-    return previous_row[-1]
-
-
-def write_result(test_id: str, score: float, metadata: dict) -> None:
-    result_file = Path(__file__).parents[0] / f".eval_recipes_test_results_{test_id}.json"
-    result = {"score": score, "metadata": metadata}
-    result_file.write_text(json.dumps(result))
-
-
-def check_csv_exists() -> tuple[bool, str]:
-    csv_file = Path(__file__).parents[0] / "gdpval_prompts.csv"
-    if not csv_file.exists():
-        return False, "gdpval_prompts.csv not found"
-    return True, ""
-
-
-def load_csv() -> tuple[list[dict], list[str], str]:
+def load_csv_from_path(csv_file: Path) -> tuple[list[dict], list[str], str]:
     """
-    Load CSV and return rows and fieldnames.
+    Load CSV from file path and return rows and fieldnames.
     Returns (rows, fieldnames, error_message). If error, rows and fieldnames will be empty.
     """
-    csv_file = Path(__file__).parents[0] / "gdpval_prompts.csv"
     try:
         with csv_file.open("r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
@@ -99,6 +72,21 @@ def load_csv() -> tuple[list[dict], list[str], str]:
         return rows, fieldnames, ""
     except Exception as e:
         return [], [], f"Could not read CSV: {e}"
+
+
+def load_csv_from_content(csv_content: str) -> tuple[list[dict], list[str], str]:
+    """
+    Load CSV from string content and return rows and fieldnames.
+    Returns (rows, fieldnames, error_message). If error, rows and fieldnames will be empty.
+    """
+    try:
+        f = io.StringIO(csv_content)
+        reader = csv.DictReader(f)
+        rows = list(reader)
+        fieldnames = list(reader.fieldnames or [])
+        return rows, fieldnames, ""
+    except Exception as e:
+        return [], [], f"Could not parse CSV content: {e}"
 
 
 def check_prompt_column_exists(fieldnames: list[str]) -> tuple[bool, str]:
@@ -162,22 +150,11 @@ def check_spot_checks(rows: list[dict]) -> tuple[bool, dict]:
     return all_prompts_match, spot_check_results
 
 
-def check_summary_exists() -> tuple[bool, str]:
-    """Check if summary file exists. Returns (success, error_message)."""
-    summary_file = Path(__file__).parents[0] / "gdpval_summary.txt"
-    if not summary_file.exists():
-        return False, "gdpval_summary.txt not found"
-    return True, ""
-
-
-async def run_claim_verification(rows: list[dict]) -> tuple[float, dict]:
+async def run_claim_verification(summary_text: str, rows: list[dict]) -> tuple[float, dict]:
     """
-    Run claim verification on the summary file.
+    Run claim verification on the summary text.
     Returns (score_0_to_100, metadata_dict).
-    Note: Assumes summary file exists (checked as prerequisite).
     """
-    summary_file = Path(__file__).parents[0] / "gdpval_summary.txt"
-    summary_text = summary_file.read_text()
 
     # Use all prompts as source context for claim verification
     prompt_contexts = [
@@ -227,59 +204,113 @@ async def run_claim_verification(rows: list[dict]) -> tuple[float, dict]:
         return 0.0, {"error": str(e)}
 
 
-async def main() -> int:
-    test_id = os.environ["EVAL_RECIPES_TEST_ID"]
-    metadata: dict = {}
+@click.command()
+@click.option(
+    "--csv",
+    type=str,
+    default=None,
+    help="Path to CSV file with prompts, or CSV content as string",
+)
+@click.option(
+    "--summary",
+    type=str,
+    default=None,
+    help="Path to summary text file, or summary content as string",
+)
+@click.option(
+    "--test-id",
+    default=lambda: get_test_id_from_env_or_default("dev"),
+    help="Test ID for result file naming (defaults to EVAL_RECIPES_TEST_ID env var)",
+)
+@click.option(
+    "--output-dir",
+    type=click.Path(path_type=Path),
+    default=lambda: Path(__file__).parents[0],
+    help="Directory to write result file",
+)
+@click.option(
+    "--instructions-file",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Path to instructions file (defaults to ./instructions.txt in working directory)",
+)
+def main(
+    csv: str | None,
+    summary: str | None,
+    test_id: str,
+    output_dir: Path,
+    instructions_file: Path | None,
+) -> int:
+    """Test script for gdpval extraction task."""
+    # Use defaults if not provided
+    if csv is None:
+        csv = str(Path(__file__).parents[0] / "gdpval_prompts.csv")
+    if summary is None:
+        summary = str(Path(__file__).parents[0] / "gdpval_summary.txt")
 
-    # Check 1: CSV exists
-    success, error = check_csv_exists()
-    if not success:
-        print(f"FAIL: {error}")
-        write_result(test_id, 0, {"error": error})
-        return 1
+    return asyncio.run(run_test(csv, summary, test_id, output_dir, instructions_file))
 
-    # Check 2: Load CSV
-    rows, fieldnames, error = load_csv()
-    if error:
-        print(f"FAIL: {error}")
-        write_result(test_id, 0, {"error": error})
-        return 1
 
-    # Check 3: Prompt column exists
+async def run_test(csv: str, summary: str, test_id: str, output_dir: Path, instructions_file: Path | None) -> int:
+    # Load instructions from file
+    instructions = get_instructions_from_file_or_default(instructions_file=instructions_file)
+    metadata: dict = {"instructions": instructions}
+
+    # Load CSV data - detect if it's a file path or content
+    try:
+        csv_path = Path(csv)
+        if csv_path.exists():
+            rows, fieldnames, error = load_csv_from_path(csv_path)
+            if error:
+                print(f"FAIL: {error}")
+                write_test_result(output_dir, test_id, 0, {"error": error})
+                return 1
+        else:
+            # Path doesn't exist, treat as CSV content
+            rows, fieldnames, error = load_csv_from_content(csv)
+            if error:
+                print(f"FAIL: {error}")
+                write_test_result(output_dir, test_id, 0, {"error": error})
+                return 1
+    except (OSError, ValueError):
+        # Invalid path (e.g., too long), treat as CSV content
+        rows, fieldnames, error = load_csv_from_content(csv)
+        if error:
+            print(f"FAIL: {error}")
+            write_test_result(output_dir, test_id, 0, {"error": error})
+            return 1
+
+    # Check prompt column exists
     success, error = check_prompt_column_exists(fieldnames)
     if not success:
         print(f"FAIL: {error}")
-        write_result(test_id, 0, {"error": error, "columns": fieldnames})
+        write_test_result(output_dir, test_id, 0, {"error": error, "columns": fieldnames})
         return 1
 
-    # Check 4: Row count
+    # Check row count
     success, actual_rows, error = check_row_count(rows)
     if not success:
         print(f"FAIL: {error}")
-        write_result(test_id, 0, {"error": error, "actual_rows": actual_rows})
+        write_test_result(output_dir, test_id, 0, {"error": error, "actual_rows": actual_rows})
         return 1
 
-    # Check 5: Spot checks - all must pass
+    # Spot checks - all must pass
     all_passed, spot_check_results = check_spot_checks(rows)
     metadata["spot_checks"] = spot_check_results
     metadata["all_spot_checks_passed"] = all_passed
     if not all_passed:
         print("FAIL: Not all spot checks passed")
-        write_result(test_id, 0, metadata)
+        write_test_result(output_dir, test_id, 0, metadata)
         return 1
-    
-    # Check 6: Summary file exists
-    success, error = check_summary_exists()
-    if not success:
-        print(f"FAIL: {error}")
-        write_result(test_id, 0, {"error": error})
-        return 1
+
+    # Load summary text - detect if it's a file path or content
+    summary_text = load_text_from_path_or_content(summary)
 
     print("All prerequisite checks passed - base score: 50")
     base_score = 50.0
 
     print("\nRunning claim verification...")
-    verification_score, verification_metadata = await run_claim_verification(rows)
+    verification_score, verification_metadata = await run_claim_verification(summary_text, rows)
     metadata["claim_verification"] = verification_metadata
 
     claim_verification_points = (verification_score / 100.0) * 50.0
@@ -289,9 +320,17 @@ async def main() -> int:
     print(f"- Claim verification score: {verification_score:.1f}/100")
     print(f"\nFinal Score: {final_score:.1f}/100")
 
-    write_result(test_id, final_score, metadata)
-    return 0 if final_score == 100.0 else 1
+    write_test_result(output_dir, test_id, final_score, metadata)
+    return 0
 
 
 if __name__ == "__main__":
-    sys.exit(asyncio.run(main()))
+    sys.exit(main())
+
+
+"""
+Sample command(s):
+uv run data/tasks/gdpval_extraction/test.py --csv "prompt\nTask 1 prompt here\nTask 2 prompt here" --summary "This dataset contains various task types including data analysis, report generation, and content creation tasks." --test-id "sample_test" --output-dir /tmp
+
+uv run python -c "import csv; f=open('/tmp/test_gdpval.csv', 'w', newline=''); w=csv.writer(f); w.writerow(['prompt']); [w.writerow([f'This is test prompt number {i+1} for the gdpval extraction task.']) for i in range(220)]; f.close()" && uv run data/tasks/gdpval_extraction/test.py --csv /tmp/test_gdpval.csv --summary "This dataset contains 220 test prompts for evaluating the gdpval extraction task." --test-id "generated_test" --output-dir /tmp
+"""

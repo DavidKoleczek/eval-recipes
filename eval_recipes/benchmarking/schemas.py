@@ -24,8 +24,9 @@ class TaskConfig(BaseModel):
     task_installation: str  # Docker commands to install the task
     instructions: str  # Instructions text for the agent
     test_script: Path  # Path to test.py script
-    test_commands_script: Path | None = None  # Optional path to test_commands.sh script
-    timeout: int = 300  # Timeout in seconds (default 5 minutes)
+    test_command: str = "uv run --no-project /project/test.py"  # Command to run tests
+    data_dir: Path | None = None  # Optional path to data directory
+    timeout: int = 600  # Timeout in seconds
     task_info: TaskInfo
 
 
