@@ -88,7 +88,6 @@ Push for extreme simplicity in these areas:
   - Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
 - Do not use relative imports.
 - Use dotenv to load environment variables for local development. Assume we have a `.env` file
-- Crawl4AI has type issues with their output types. This is the **only** library where you can use `# type: ignore` to fix the issues.
 - Since this is structured as Python package, you should not put `#!/usr/bin/env python` at the top of scripts as that is redundant.
 
 # Your workflow

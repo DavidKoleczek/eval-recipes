@@ -22,7 +22,7 @@ You will be provided with test.py which contains the tests that were run to gene
 The tests can be either deterministic or semantic (in that they use a highly specialized agent to verify correctness).
 - test_output.log contains the raw output that the test runner generated. Warning, this file can be VERY long so be smart about reading it.
 - test_results.json contains higher level information about the outcome of the tests including the final score that was given.
-tests.py will often call a semantic test function, this is its signature so that you understand how it works:
+test.py will often call a semantic test function, this is its signature so that you understand how it works:
 {{semantic_test_signature}}
 
 It can also call other evaluation recipes from the eval_recipes package, this is the high level README of what it can do:

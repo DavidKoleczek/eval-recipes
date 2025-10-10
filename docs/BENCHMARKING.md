@@ -14,7 +14,7 @@ The benchmarking harness is available via the CLI script `scripts/run_benchmarks
 export ANTHROPIC_API_KEY=your_anthropic_key
 export OPENAI_API_KEY=your_openai_key
 
-# Run all agents on all tasks, default this will use the existing data/agents/ and data/tasks/ directories
+# Run all agents on all tasks, by default this will use the existing data/agents/ and data/tasks/ directories
 uv run scripts/run_benchmarks.py --max-parallel-tasks 3
 
 # You can also specify various filters
