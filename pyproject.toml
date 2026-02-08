@@ -50,6 +50,7 @@ exclude = [
     "data",
     "ai_context",
     "ai_working",
+    "scripts/create_animation.py",
 ]
 
 [tool.ruff]
