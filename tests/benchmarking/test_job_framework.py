@@ -171,7 +171,7 @@ async def test_dag_validation_errors(tmp_path: Path) -> None:
     job_a3 = MockJob("A3")
     job_b3 = MockJob("B3", deps=[job_a3])
     # Manually create cycle by modifying deps
-    job_a3._deps = [job_b3]  # type: ignore[list-item]
+    job_a3._deps = [job_b3]
 
     runner3 = JobRunner(state_path=tmp_path / "jobs3.db")
     runner3.add_jobs([job_a3, job_b3])
@@ -183,7 +183,7 @@ async def test_dag_validation_errors(tmp_path: Path) -> None:
     job_a4 = MockJob("A4")
     job_b4 = MockJob("B4", deps=[job_a4])
     job_c4 = MockJob("C4", deps=[job_b4])
-    job_a4._deps = [job_c4]  # type: ignore[list-item]
+    job_a4._deps = [job_c4]
 
     runner4 = JobRunner(state_path=tmp_path / "jobs4.db")
     runner4.add_jobs([job_a4, job_b4, job_c4])

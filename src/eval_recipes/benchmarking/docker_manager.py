@@ -292,7 +292,7 @@ class DockerManager:
             nonlocal complete_logs, stream_exception
             try:
                 with log_file.open("wb") as f:
-                    for chunk in output_stream:  # type: ignore[union-attr]
+                    for chunk in output_stream:
                         if chunk:
                             if isinstance(chunk, tuple):
                                 # demux=True returns (stdout, stderr) tuples

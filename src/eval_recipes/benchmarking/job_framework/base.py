@@ -4,13 +4,13 @@
 
 from abc import ABC, abstractmethod
 from datetime import UTC, datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any, Generic, TypeVar, cast
 
 from pydantic import BaseModel, Field
 
 
-class JobStatus(str, Enum):
+class JobStatus(StrEnum):
     """Status of a job in the execution pipeline."""
 
     PENDING = "pending"

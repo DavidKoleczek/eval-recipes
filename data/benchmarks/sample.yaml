@@ -1,0 +1,27 @@
+score_benchmark:
+  benchmark_type: score
+  continuation_provider: openai
+  continuation_model: gpt-5.2
+  score_benchmarks:
+    - agent_id: claude_code
+      task_names:
+        - arxiv_conclusion_extraction
+        - code-discrepancy-docs-knack
+        - cpsc_recall_monitor
+        - email_drafting
+        - news_research_tool
+        - pdf-hr-q4
+        - product_review_finder
+        - style_blender
+      trials: 1
+    - agent_id: gh_cli
+      task_names:
+        - arxiv_conclusion_extraction
+        - code-discrepancy-docs-knack
+        - cpsc_recall_monitor
+        - email_drafting
+        - news_research_tool
+        - pdf-hr-q4
+        - product_review_finder
+        - style_blender
+      trials: 1

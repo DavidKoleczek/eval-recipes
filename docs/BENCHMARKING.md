@@ -8,10 +8,10 @@ This module provides a benchmarking harness for evaluating AI agents within isol
 ```bash
 # Install prerequisites below first.
 # With uv (add to project dependencies, pinned to a release tag)
-uv add "eval-recipes @ git+https://github.com/microsoft/eval-recipes@v0.0.34"
+uv add "eval-recipes @ git+https://github.com/microsoft/eval-recipes@v0.0.35"
 
 # With pip
-pip install "git+https://github.com/microsoft/eval-recipes@v0.0.34"
+pip install "git+https://github.com/microsoft/eval-recipes@v0.0.35"
 ```
 
 
@@ -415,15 +415,6 @@ result = await semantic_test_comparison(
 ## Third-Party Benchmarks
 
 Scripts for integrating third-party benchmarks are located in `scripts/third_party_benchmarks/`. These scripts download benchmark data from external sources and convert them into eval-recipes score-based task format.
-
-### ARC-AGI-2
-
-[ARC-AGI-2](https://github.com/arcprize/ARC-AGI-2/tree/main) is a general artificial intelligence benchmark focused on abstract reasoning. Tasks involve analyzing input/output grid pairs to discover transformation patterns, then applying those patterns to new test inputs.
-A set of sample tasks can be created using this script:
-
-```bash
-uv run scripts/third_party_benchmarks/setup_arc_agi_2.py --num-tasks 10 --seed 42 --output-dir data/tasks --clean
-```
 
 ### OpenAI FrontierScience
 

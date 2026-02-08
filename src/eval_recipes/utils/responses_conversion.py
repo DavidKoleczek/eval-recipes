@@ -54,12 +54,12 @@ def format_full_history(
         if isinstance(item, dict):
             # Handle system, user, and assistant messages
             if "role" in item and "content" in item and item.get("type") != "function_call":
-                role = item["role"]
+                role = item.get("role", "")
 
                 if remove_system_messages and role == "system":
                     continue
 
-                content = item["content"]
+                content = item.get("content", "")
                 # Handle content that might be a string or list
                 if isinstance(content, str):
                     text = content
@@ -67,11 +67,10 @@ def format_full_history(
                     # Extract text from content list items
                     text_parts = []
                     for content_item in content:
-                        if isinstance(content_item, dict):
-                            if "text" in content_item:
-                                text_parts.append(content_item["text"])
-                            elif "type" in content_item and content_item["type"] == "input_text":
-                                text_parts.append(content_item.get("text", ""))
+                        if isinstance(content_item, dict) and (
+                            "text" in content_item or ("type" in content_item and content_item["type"] == "input_text")
+                        ):
+                            text_parts.append(content_item.get("text", ""))
                     text = "\n".join(text_parts)
                 else:
                     text = str(content)

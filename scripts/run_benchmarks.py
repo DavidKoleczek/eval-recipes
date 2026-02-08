@@ -23,7 +23,7 @@ load_dotenv()
     "benchmark_path",
     type=click.Path(exists=True, dir_okay=False, path_type=Path),
     required=True,
-    default=lambda: Path(__file__).parents[1] / "data" / "benchmarks" / "full_benchmark.yaml",
+    default=lambda: Path(__file__).parents[1] / "data" / "benchmarks" / "sample.yaml",
     help="Path to benchmark definition YAML file",
 )
 @click.option(
@@ -47,7 +47,7 @@ load_dotenv()
 @click.option(
     "--max-parallel",
     type=int,
-    default=12,
+    default=15,
     help="Maximum number of parallel jobs",
 )
 def main(
