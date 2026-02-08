@@ -169,7 +169,7 @@ class ExecuteAgentJob(Job[ExecuteAgentJobOutput]):
 
             if continuation_provider != "none" and agent.command_template_continue is not None:
                 try:
-                    provider: Literal["openai", "azure_openai"] = continuation_provider  # type: ignore[assignment]
+                    provider: Literal["openai", "azure_openai"] = continuation_provider
                     continuation_response = await interact_with_agent(
                         agent_log=exec_logs,
                         task_instructions=task_instructions,

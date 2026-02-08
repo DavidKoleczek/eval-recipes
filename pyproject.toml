@@ -1,8 +1,8 @@
 [project]
 name = "eval_recipes"
-version = "0.0.34"
+version = "0.0.35"
 description = "Eval Recipes"
-authors = [{ name = "Semantic Workbench Team" }]
+authors = [{ name = "Microsoft MADE:Explorations Team" }]
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -25,10 +25,11 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "ipykernel>=7.1,<8.0",
+    "ipykernel>=7.2,<8.0",
     "marimo[recommended]>=0.19,<1.0",
     "nbclient>0.10,<1.0",
-    "pyright>=1.1.408",
+    "ruff>=0.15.0",
+    "ty>=0.0.15",
     "pytest",
     "pytest-asyncio",
 ]
@@ -37,8 +38,19 @@ animations = [
 ]
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["uv_build>=0.9.15,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "eval_recipes"
+
+[tool.ty.src]
+exclude = [
+    "demos",
+    "data",
+    "ai_context",
+    "ai_working",
+]
 
 [tool.ruff]
 line-length = 120
@@ -46,7 +58,9 @@ exclude = [
     "demos",
     "data",
     "ai_context",
+    "ai_working",
 ]
+target-version = "py311"
 
 [tool.ruff.lint]
 select = [
@@ -67,9 +81,6 @@ select = [
 ]
 ignore = ["E501"]
 unfixable = []
-
-[tool.ruff.lint.per-file-ignores]
-"main.py" = ["B008"] # Ignores the issue of using Depends in FastAPI route params
 
 [tool.ruff.lint.isort]
 force-sort-within-sections = true
@@ -98,6 +109,7 @@ filterwarnings = [
     "ignore::pytest.PytestUnraisableExceptionWarning",
     "ignore::pytest_asyncio.plugin.PytestDeprecationWarning",
 ]
+testpaths = ["tests"]
 
 [tool.marimo.formatting]
 line_length = 120
@@ -105,7 +117,3 @@ line_length = 120
 [tool.marimo.runtime]
 auto_instantiate=false
 on_cell_change="lazy"
-
-[tool.pyright]
-ignore = ["demos", "ai_context", "media", "scripts/create_animation.py", "data/tasks"]
-typeCheckingMode = "standard"

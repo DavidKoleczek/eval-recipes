@@ -5,6 +5,7 @@ media/
 .comparison_results/
 data/tasks/arc-agi-2-*/
 data/tasks/frontier-science-*/
+ai_working/
 
 # Benchmarking generated reports
 benchmark_report.html

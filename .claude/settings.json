@@ -2,12 +2,24 @@
   "permissions": {
     "allow": [
       "mcp__ide__getDiagnostics",
-      "Bash(make:*)",
-      "Bash(tree:*)",
-      "Bash(mkdir:*)",
-      "Bash(cp:*)",
       "WebSearch",
-      "WebFetch"
+      "WebFetch",
+      "Bash(cp:*)",
+      "Bash(find:*)",
+      "Bash(mkdir:*)",
+      "Bash(ls:*)",
+      "Bash(xargs:*)",
+      "Bash(tree:*)",
+      "Bash(tee:*)",
+      "Bash(grep:*)",
+      "Bash(git clone:*)",
+      "Bash(uv build:*)",
+      "Bash(uv sync:*)",
+      "Bash(uv run ruff format:*)",
+      "Bash(uv run ruff check:*)",
+      "Bash(uv run ty:*)",
+      "Bash(gh release list:*)",
+      "Bash(gh release view:*)"
     ],
     "deny": [],
     "ask": []
@@ -15,11 +27,12 @@
   "hooks": {
     "Stop": [
       {
-        "matcher": "Edit|MultiEdit|Write",
+        "matcher": "Edit|Write",
         "hooks": [
           {
             "type": "command",
-            "command": "make check"
+            "command": "uv run ruff check --fix && uv run ruff format && uv run ty check",
+            "timeout": 10
           }
         ]
       }

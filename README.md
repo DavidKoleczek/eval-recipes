@@ -22,10 +22,10 @@ which are a mix of code and LLM calls to achieve a desired tradeoff between flex
 ```bash
 # Benchmarking requires certain prerequisites, see the full documentation for more details.
 # With uv (add to project dependencies, pinned to a release tag)
-uv add "eval-recipes @ git+https://github.com/microsoft/eval-recipes@v0.0.34"
+uv add "eval-recipes @ git+https://github.com/microsoft/eval-recipes@v0.0.35"
 
 # With pip
-pip install "git+https://github.com/microsoft/eval-recipes@v0.0.34"
+pip install "git+https://github.com/microsoft/eval-recipes@v0.0.35"
 ```
 
 > [!WARNING]
@@ -213,28 +213,65 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
+### Low Level API
+
+[LOW_LEVEL_API.md](./docs/LOW_LEVEL_API.md)
+
 
 ## Development Installation
-### Prerequisites
-- make
-  - For Windows, you can download it using [UniGetUI](https://github.com/marticliment/UnigetUI) and use [ezwinports make](https://github.com/microsoft/winget-pkgs/tree/master/manifests/e/ezwinports/make)
-- [uv](https://docs.astral.sh/uv/getting-started/installation/)
 
-### Install Dependencies & Configure Environment
+### Prerequisites
+- [uv](https://docs.astral.sh/uv/getting-started/installation/)
+- [prek](https://github.com/j178/prek/blob/master/README.md#installation)
+
+### Setup
+
+Create uv virtual environment and install dependencies:
 
 ```bash
-make install
-cp .env.sample .env
-# Configure API keys in .env
-# Make sure the venv gets activated
-. .venv/bin/activate # Linux example
+uv sync --frozen --all-extras --all-groups
 ```
 
+This project uses [prek](https://github.com/j178/prek) for git hooks. See [`.pre-commit-config.yaml`](../.pre-commit-config.yaml) for the full configuration.
+
+```bash
+prek install
+```
+
+Setup environment variables.
 This library requires either OpenAI or Azure OpenAI to be configured. You must set the correct environment variables in the `.env` file.
-
 The `semantic_test` evaluator additionally requires `ANTHROPIC_API_KEY` to be set, as it uses the Claude Agent SDK.
-
 Check [utils.py `create_client`](./eval_recipes/utils/llm.py) to troubleshoot any configuration issues.
+
+```bash
+cp .env.sample .env
+# Configure API keys in .env
+```
+
+To update dependencies (updates the lock file):
+
+```bash
+uv sync --all-extras --all-groups
+```
+
+Run formatting, linting, type checking, and tests in one command:
+
+```bash
+uv run ruff format && uv run ruff check --fix && uv run ty check
+```
+
+Run tests:
+
+```bash
+uv run pytest
+```
+
+Run all pre-commit hooks manually:
+
+```bash
+prek run --all-files
+```
+
 
 ### Other
 
@@ -244,21 +281,6 @@ Check [utils.py `create_client`](./eval_recipes/utils/llm.py) to troubleshoot an
   - `uv run manim scripts/create_animation.py EvalRecipesAnimation -qh && ffmpeg -y -i media/videos/create_animation/1080p60/EvalRecipesAnimation.mp4 -vf "fps=30,scale=1920:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 demos/data/EvalRecipesAnimation.gif`
 - [Validating Evaluations](./tests/validate_evaluations.py):
   - This script will run evaluations against a small "goldset" (see [data/goldset](data/goldset/)) where we have inputs to evaluate with labels of what the scores should be (defined in [data/goldset/labels.yaml](data/goldset/labels.yaml)).
-
-
-## Low Level API
-
-[LOW_LEVEL_API.md](./docs/LOW_LEVEL_API.md)
-
-
-## Changelog
-
-[CHANGELOG.md](./docs/CHANGELOG.md)
-
-
-## Roadmap
-
-[ROADMAP.md](./docs/ROADMAP.md)
 
 
 ## Attributions
