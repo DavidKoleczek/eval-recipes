@@ -33,10 +33,10 @@ which are a mix of code and LLM calls to achieve a desired tradeoff between flex
 ```bash
 # Benchmarking requires certain prerequisites, see the full documentation for more details.
 # With uv (add to project dependencies, pinned to a release tag)
-uv add "eval-recipes @ git+https://github.com/microsoft/eval-recipes@v0.0.34"
+uv add "eval-recipes @ git+https://github.com/microsoft/eval-recipes@v0.0.35"
 
 # With pip
-pip install "git+https://github.com/microsoft/eval-recipes@v0.0.34"
+pip install "git+https://github.com/microsoft/eval-recipes@v0.0.35"
 ```
 
 > [!WARNING]
@@ -224,28 +224,65 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
+### Low Level API
+
+[LOW_LEVEL_API.md](./docs/LOW_LEVEL_API.md)
+
 
 ## Development Installation
-### Prerequisites
-- make
-  - For Windows, you can download it using [UniGetUI](https://github.com/marticliment/UnigetUI) and use [ezwinports make](https://github.com/microsoft/winget-pkgs/tree/master/manifests/e/ezwinports/make)
-- [uv](https://docs.astral.sh/uv/getting-started/installation/)
 
-### Install Dependencies & Configure Environment
+### Prerequisites
+- [uv](https://docs.astral.sh/uv/getting-started/installation/)
+- [prek](https://github.com/j178/prek/blob/master/README.md#installation)
+
+### Setup
+
+Create uv virtual environment and install dependencies:
 
 ```bash
-make install
-cp .env.sample .env
-# Configure API keys in .env
-# Make sure the venv gets activated
-. .venv/bin/activate # Linux example
+uv sync --frozen --all-extras --all-groups
 ```
 
+This project uses [prek](https://github.com/j178/prek) for git hooks. See [`.pre-commit-config.yaml`](../.pre-commit-config.yaml) for the full configuration.
+
+```bash
+prek install
+```
+
+Setup environment variables.
 This library requires either OpenAI or Azure OpenAI to be configured. You must set the correct environment variables in the `.env` file.
-
 The `semantic_test` evaluator additionally requires `ANTHROPIC_API_KEY` to be set, as it uses the Claude Agent SDK.
-
 Check [utils.py `create_client`](./eval_recipes/utils/llm.py) to troubleshoot any configuration issues.
+
+```bash
+cp .env.sample .env
+# Configure API keys in .env
+```
+
+To update dependencies (updates the lock file):
+
+```bash
+uv sync --all-extras --all-groups
+```
+
+Run formatting, linting, type checking, and tests in one command:
+
+```bash
+uv run ruff format && uv run ruff check --fix && uv run ty check
+```
+
+Run tests:
+
+```bash
+uv run pytest
+```
+
+Run all pre-commit hooks manually:
+
+```bash
+prek run --all-files
+```
+
 
 ### Other
 
@@ -255,21 +292,6 @@ Check [utils.py `create_client`](./eval_recipes/utils/llm.py) to troubleshoot an
   - `uv run manim scripts/create_animation.py EvalRecipesAnimation -qh && ffmpeg -y -i media/videos/create_animation/1080p60/EvalRecipesAnimation.mp4 -vf "fps=30,scale=1920:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 demos/data/EvalRecipesAnimation.gif`
 - [Validating Evaluations](./tests/validate_evaluations.py):
   - This script will run evaluations against a small "goldset" (see [data/goldset](data/goldset/)) where we have inputs to evaluate with labels of what the scores should be (defined in [data/goldset/labels.yaml](data/goldset/labels.yaml)).
-
-
-## Low Level API
-
-[LOW_LEVEL_API.md](./docs/LOW_LEVEL_API.md)
-
-
-## Changelog
-
-[CHANGELOG.md](./docs/CHANGELOG.md)
-
-
-## Roadmap
-
-[ROADMAP.md](./docs/ROADMAP.md)
 
 
 ## Attributions
@@ -570,10 +592,10 @@ This module provides a benchmarking harness for evaluating AI agents within isol
 ```bash
 # Install prerequisites below first.
 # With uv (add to project dependencies, pinned to a release tag)
-uv add "eval-recipes @ git+https://github.com/microsoft/eval-recipes@v0.0.34"
+uv add "eval-recipes @ git+https://github.com/microsoft/eval-recipes@v0.0.35"
 
 # With pip
-pip install "git+https://github.com/microsoft/eval-recipes@v0.0.34"
+pip install "git+https://github.com/microsoft/eval-recipes@v0.0.35"
 ```
 
 
@@ -978,15 +1000,6 @@ result = await semantic_test_comparison(
 
 Scripts for integrating third-party benchmarks are located in `scripts/third_party_benchmarks/`. These scripts download benchmark data from external sources and convert them into eval-recipes score-based task format.
 
-### ARC-AGI-2
-
-[ARC-AGI-2](https://github.com/arcprize/ARC-AGI-2/tree/main) is a general artificial intelligence benchmark focused on abstract reasoning. Tasks involve analyzing input/output grid pairs to discover transformation patterns, then applying those patterns to new test inputs.
-A set of sample tasks can be created using this script:
-
-```bash
-uv run scripts/third_party_benchmarks/setup_arc_agi_2.py --num-tasks 10 --seed 42 --output-dir data/tasks --clean
-```
-
 ### OpenAI FrontierScience
 
 [FrontierScience](https://huggingface.co/datasets/openai/frontierscience) is a benchmark that evaluates AI capabilities for expert-level scientific reasoning across physics, chemistry, and biology.
@@ -998,140 +1011,6 @@ uv run scripts/third_party_benchmarks/setup_frontier_science.py --num-tasks 10 -
 ## Notes
 
 - You may want to prune your Docker images and containers periodically to save space. Containers/images can hang around when runs are unexpectedly interrupted.
-
-## eval_recipes/evaluate.py
-
-# Copyright (c) Microsoft. All rights reserved.
-
-import asyncio
-
-from openai.types.chat.chat_completion_tool_param import ChatCompletionToolParam
-from openai.types.responses import ResponseInputParam
-
-from eval_recipes.evaluations.check_criteria.check_criteria_evaluator import (
-    CheckCriteriaEvaluator,
-    CheckCriteriaEvaluatorConfig,
-)
-from eval_recipes.evaluations.claim_verification.claim_verification_evaluator import (
-    ClaimVerificationEvaluator,
-    ClaimVerificationEvaluatorConfig,
-)
-from eval_recipes.evaluations.guidance.guidance_evaluator import GuidanceEvaluator, GuidanceEvaluatorConfig
-from eval_recipes.evaluations.preference_adherence.preference_adherence_evaluator import PreferenceAdherenceEvaluator
-from eval_recipes.evaluations.tool_usage.tool_usage_evaluator import ToolUsageEvaluator, ToolUsageEvaluatorConfig
-from eval_recipes.schemas import BaseEvaluatorConfig, EvaluationOutput, EvaluatorProtocol
-
-
-async def evaluate(
-    messages: ResponseInputParam,
-    tools: list[ChatCompletionToolParam],
-    evaluations: list[str | type[EvaluatorProtocol]],
-    evaluation_configs: dict[str, BaseEvaluatorConfig] | None = None,
-    max_concurrency: int = 1,
-) -> list[EvaluationOutput]:
-    """
-    Evaluates the model's performance based on the provided messages and tools over the specified evaluations.
-
-    Args:
-        messages: OpenAI responses API input messages
-        tools: OpenAI tool definitions
-        evaluations: The list of evaluation names or custom evaluator classes to perform.
-          Built-in options are: "claim_verification", "tool_usage", "guidance", and "preference_adherence".
-          You can also pass custom evaluator classes that implement the EvaluatorProtocol.
-        evaluation_configs: Optional configs for each evaluation.
-          Keys should be the built-in evaluation names or custom evaluator class names.
-          If not provided, defaults will be used.
-        max_concurrency: Maximum number of evaluations to run concurrently. Default is 1 (sequential).
-
-    Returns:
-        A list of EvaluationOutput objects containing the evaluation results.
-        Each object includes the evaluation name, score, and optional metadata specific to that evaluation.
-    """
-    if evaluation_configs is None:
-        evaluation_configs = {}
-
-    evaluator_map: dict[str, tuple[type, type[BaseEvaluatorConfig]]] = {
-        "guidance": (GuidanceEvaluator, GuidanceEvaluatorConfig),
-        "preference_adherence": (PreferenceAdherenceEvaluator, BaseEvaluatorConfig),
-        "tool_usage": (ToolUsageEvaluator, ToolUsageEvaluatorConfig),
-        "claim_verification": (ClaimVerificationEvaluator, ClaimVerificationEvaluatorConfig),
-        "check_criteria": (CheckCriteriaEvaluator, CheckCriteriaEvaluatorConfig),
-    }
-
-    semaphore = asyncio.Semaphore(max_concurrency)
-
-    async def run_evaluation(
-        eval_item: str | type[EvaluatorProtocol],
-    ) -> EvaluationOutput | None:
-        async with semaphore:
-            # Handle string evaluation names (built-in evaluators)
-            if isinstance(eval_item, str):
-                if eval_item not in evaluator_map:
-                    return None
-                evaluator_class, config_type = evaluator_map[eval_item]
-                config = evaluation_configs.get(eval_item)
-                validated_config = config if isinstance(config, config_type) else None
-                evaluator = evaluator_class(config=validated_config)
-            # Handle custom evaluator classes
-            else:
-                # Check if the class implements the required protocol
-                if not isinstance(eval_item, type) or not issubclass(eval_item, EvaluatorProtocol):
-                    raise ValueError(f"Custom evaluator {eval_item} must be a class that implements EvaluatorProtocol")
-                # Get config using the class name
-                class_name = eval_item.__name__
-                config = evaluation_configs.get(class_name)
-                evaluator = eval_item(config=config)
-
-            return await evaluator.evaluate(messages, tools)
-
-    tasks = [run_evaluation(eval_item) for eval_item in evaluations]
-    results = await asyncio.gather(*tasks)
-    return [result for result in results if result is not None]
-
-## eval_recipes/schemas.py
-
-# Copyright (c) Microsoft. All rights reserved.
-
-
-from typing import Any, Literal, Protocol, runtime_checkable
-
-from openai.types.chat.chat_completion_tool_param import ChatCompletionToolParam
-from openai.types.responses import ResponseInputParam
-from pydantic import BaseModel
-
-
-class EvaluationOutput(BaseModel):
-    eval_name: str  # Name of the evaluation
-    applicable: bool  # Was the evaluation applicable
-    score: float  # Score from 0 to 100
-    feedback: str | None = None  # Feedback that can be used as part of another system to self-improve the response.
-    metadata: dict[str, Any] = {}  # Any additional metadata the evaluation may generate.
-
-
-# region Eval Configurations
-
-
-class BaseEvaluatorConfig(BaseModel):
-    provider: Literal["openai", "azure_openai"] = "openai"
-    model: Literal["gpt-5", "gpt-5-mini", "gpt-5-nano", "o3", "o4-mini"] = "gpt-5"
-
-
-# endregion
-
-
-@runtime_checkable
-class EvaluatorProtocol(Protocol):
-    """Protocol for custom evaluator classes."""
-
-    def __init__(self, config: BaseEvaluatorConfig | None = None) -> None:
-        """Initialize the evaluator with an optional configuration.
-        If config is not provided, it should be instantiated with defaults.
-        """
-        ...
-
-    async def evaluate(self, messages: ResponseInputParam, tools: list[ChatCompletionToolParam]) -> EvaluationOutput:
-        """Evaluate messages and tools, returning an EvaluationOutput."""
-        ...
 
 ## scripts/run_benchmarks.py
 
@@ -1160,7 +1039,7 @@ load_dotenv()
     "benchmark_path",
     type=click.Path(exists=True, dir_okay=False, path_type=Path),
     required=True,
-    default=lambda: Path(__file__).parents[1] / "data" / "benchmarks" / "full_benchmark.yaml",
+    default=lambda: Path(__file__).parents[1] / "data" / "benchmarks" / "sample.yaml",
     help="Path to benchmark definition YAML file",
 )
 @click.option(
@@ -1184,7 +1063,7 @@ load_dotenv()
 @click.option(
     "--max-parallel",
     type=int,
-    default=12,
+    default=15,
     help="Maximum number of parallel jobs",
 )
 def main(
