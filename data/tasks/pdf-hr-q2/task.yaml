@@ -8,7 +8,6 @@ evaluation_configs:
   - type: score
     test_script: test.py
     test_command: uv run --no-project /project/test.py
-dockerfile_portion: ""
 instructions: |
   I am doing some data analysis based on `hr_report.pdf`. Can you help me answer this: How many employees have a level of M1 (manager) at the entire company?
   Please place the answer in a text file called "data_analysis_answer.txt" that just contains the answer.

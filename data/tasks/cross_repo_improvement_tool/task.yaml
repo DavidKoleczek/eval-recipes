@@ -4,12 +4,11 @@ task_info:
   non_deterministic_evals: true
   categories:
     - cli_tool
-    - software_engineering_tools
+    - ai_tool
 evaluation_configs:
   - type: score
     test_script: test.py
     test_command: uv run --no-project /project/test.py
-dockerfile_portion: ""
 instructions: |
   I would like a new tool that uses repomix (`npx repomix@latest`, check it out) to roll up a "source" local or remote repo and also a
   "target" repo and any additional requests I want to pass along with the input. The tool should then take all that and deeply analyze the relevant parts of both

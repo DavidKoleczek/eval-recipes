@@ -13,8 +13,9 @@ runtime_files:
   - source: data
     dest: /project
 command_template: >-
-  amplifier run --bundle foundation --verbose --output-format "json" --model "claude-opus-4-5" --provider anthropic "{{task_instructions}}"
+  amplifier run --bundle foundation --verbose --output-format "json" --model "claude-opus-4-6" --provider anthropic "{{task_instructions}}"
 command_template_continue: >-
   amplifier continue "{{task_instructions}}"
-agent_logs_paths: []
+agent_logs_paths:
+  - "Session logs are under `~/.amplifier/projects/`"
 source_code_path: null

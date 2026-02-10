@@ -3,7 +3,6 @@
 """Job for analyzing completed trials and generating failure reports."""
 
 import json
-import os
 from pathlib import Path
 from typing import Any
 
@@ -284,8 +283,7 @@ class TaskAnalysisJob(Job[TaskAnalysisJobOutput]):
             log_filename="analysis_agent.log",
             timeout=900,
             environment={
-                "ANTHROPIC_API_KEY": os.environ.get("ANTHROPIC_API_KEY", ""),
-                "PYTHONPATH": "/project/_eval_recipes",  # So Python finds the copied eval_recipes package
+                "PYTHONPATH": "/project/_eval_recipes",
             },
             workdir="/project",
         )

@@ -8,8 +8,8 @@ dockerfile_portion: |
 installation_files: []
 runtime_files: []
 command_template: >-
-  copilot -p "{{task_instructions}}" --allow-all-tools --log-level all --stream off --model "claude-opus-4.5"
+  copilot -p "{{task_instructions}}" --allow-all-tools --log-level all --stream off --model "claude-opus-4.6"
 command_template_continue: >-
-  copilot -p "{{task_instructions}}" --continue --allow-all-tools --log-level all --stream off --model "claude-opus-4.5"
+  copilot -p "{{task_instructions}}" --continue --allow-all-tools --log-level all --stream off --model "claude-opus-4.6"
 agent_logs_paths: []
 source_code_path: null

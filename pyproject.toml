@@ -1,6 +1,6 @@
 [project]
 name = "eval_recipes"
-version = "0.0.35"
+version = "0.0.36"
 description = "Eval Recipes"
 authors = [{ name = "Microsoft MADE:Explorations Team" }]
 readme = "README.md"

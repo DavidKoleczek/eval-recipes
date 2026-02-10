@@ -4,13 +4,13 @@ task_info:
   non_deterministic_evals: true
   categories:
     - cli_tool
-    - research
-    - web_scraping
+    - ai_tool
+    - knowledge_worker
+    - web
 evaluation_configs:
   - type: score
     test_script: test.py
     test_command: uv run --no-project /project/test.py
-dockerfile_portion: ""
 instructions: |
   I need a CLI tool that finds professional product reviews from reputable sources. Put all the code under scenarios/product_review_finder.
 
@@ -18,7 +18,7 @@ instructions: |
 
   Here's how it should work:
 
-  First, use ddgs (Dux Distributed Global Search) to find reviews from reputable tech sites, consumer reports, and trusted review publications. Analyze the search results and extract detailed content from the best sources.
+  First, use ddgs (Dux Distributed Global Search, https://pypi.org/project/ddgs/) to find reviews from reputable tech sites, consumer reports, and trusted review publications. Analyze the search results and extract detailed content from the best sources.
 
   From there, have a writer component that creates a first draft of the markdown report including overall consensus, key strengths/weaknesses, ratings, quotes, citations with URLs and dates, and a final recommendation.
 
@@ -35,4 +35,5 @@ instructions: |
   Save the final output to a timestamped markdown file named after the product.
 
   Include a README with usage examples.
+  You have an OPENAI_API_KEY and ANTHROPIC_API_KEY available for any LLM or image API calls you need to make.
 timeout: 4500

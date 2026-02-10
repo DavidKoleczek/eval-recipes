@@ -9,7 +9,6 @@ task_info:
 evaluation_configs:
   - type: comparison
     guidelines: null
-dockerfile_portion: ""
 instructions: |
   First, extract the ppt-2.zip file:
   unzip ppt-2.zip

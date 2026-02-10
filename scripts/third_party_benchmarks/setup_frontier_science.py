@@ -16,6 +16,7 @@ import shutil
 import urllib.request
 
 import click
+import yaml
 
 HUGGINGFACE_API_URL = "https://datasets-server.huggingface.co/rows"
 DATASET_NAME = "openai/frontierscience"
@@ -41,8 +42,8 @@ from pathlib import Path
 
 import click
 
-from eval_recipes.benchmarking.semantic_test import semantic_test
-from eval_recipes.benchmarking.test_utils import (
+from eval_recipes.benchmarking.evaluation.semantic_test import semantic_test
+from eval_recipes.benchmarking.evaluation.test_utils import (
     get_instructions_from_file_or_default,
     get_test_id_from_env_or_default,
     write_test_result,
@@ -118,15 +119,26 @@ if __name__ == "__main__":
     sys.exit(main())
 '''
 
-TASK_YAML_TEMPLATE = """\
-required_env_vars:
-  - ANTHROPIC_API_KEY
-task_info:
-  difficulty: hard
-  non_deterministic_evals: true
-  categories:
-    - openai-frontier-science
-"""
+
+def generate_task_yaml(task_name: str, instructions: str) -> str:
+    """Generate task.yaml content using yaml.dump for safe serialization."""
+    task_data = {
+        "name": task_name,
+        "task_info": {
+            "difficulty": "hard",
+            "non_deterministic_evals": True,
+            "categories": ["openai-frontier-science"],
+        },
+        "evaluation_configs": [
+            {
+                "type": "score",
+                "test_script": "test.py",
+                "test_command": "uv run --no-project /project/test.py",
+            }
+        ],
+        "instructions": instructions,
+    }
+    return yaml.dump(task_data, default_flow_style=False, sort_keys=False, allow_unicode=True)
 
 
 def fetch_all_rows() -> list[dict]:
@@ -192,32 +204,28 @@ def generate_test_py(task_id: str, row: dict) -> str:
 
 def create_task(task_id: str, row: dict, output_dir: Path) -> None:
     """Create a benchmark task directory with all required files."""
-    task_dir = output_dir / f"frontier-science-{task_id}"
+    task_name = f"frontier-science-{task_id}"
+    task_dir = output_dir / task_name
     task_dir.mkdir(parents=True, exist_ok=True)
 
-    instructions_file = task_dir / "instructions.txt"
-    instructions_file.write_text(generate_instructions(row))
+    instructions = generate_instructions(row)
 
     test_file = task_dir / "test.py"
-    test_file.write_text(generate_test_py(task_id, row))
+    test_file.write_text(generate_test_py(task_id, row), encoding="utf-8")
 
     yaml_file = task_dir / "task.yaml"
-    yaml_file.write_text(TASK_YAML_TEMPLATE)
+    yaml_file.write_text(generate_task_yaml(task_name, instructions), encoding="utf-8")
 
     print(f"  Created task: {task_dir.name}")
 
 
 def clean_existing_tasks(output_dir: Path) -> int:
     """Remove existing FrontierScience tasks from the output directory."""
-    removed_count = 0
     if not output_dir.exists():
-        return removed_count
+        return 0
 
-    for task_dir in output_dir.iterdir():
-        if task_dir.is_dir() and task_dir.name.startswith("frontier-science-"):
-            shutil.rmtree(task_dir)
-            removed_count += 1
-
+    removed_count = sum(1 for d in output_dir.iterdir() if d.is_dir())
+    shutil.rmtree(output_dir)
     return removed_count
 
 
@@ -237,8 +245,8 @@ def clean_existing_tasks(output_dir: Path) -> int:
 @click.option(
     "--output-dir",
     type=click.Path(path_type=Path),
-    default=Path(__file__).parents[2] / "data" / "tasks",
-    help="Directory to create tasks in (default: data/tasks)",
+    default=Path(__file__).parents[2] / "data" / "tasks" / "frontier-science",
+    help="Directory to create tasks in (default: data/tasks/frontier-science)",
 )
 @click.option(
     "--clean",

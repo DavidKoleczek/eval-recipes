@@ -4,7 +4,6 @@ task_info:
   non_deterministic_evals: true
   categories:
     - cli_tool
-    - automation
     - ai_tool
 evaluation_configs:
   - type: score

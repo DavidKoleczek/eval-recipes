@@ -4,12 +4,11 @@ task_info:
   non_deterministic_evals: true
   categories:
     - cli_tool
-    - writing
+    - ai_tool
 evaluation_configs:
   - type: score
     test_script: test.py
     test_command: uv run --no-project /project/test.py
-dockerfile_portion: ""
 instructions: |
   Create a tool called "Style Blender" that blends writing styles from multiple authors to create unique voice profiles. The tool should analyze writing samples from 2+ authors, extract their individual style characteristics, then intelligently blend them to create a new, harmonious writing voice. Place all the code under the directory scenarios/style_blender.
 

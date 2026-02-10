@@ -4,13 +4,11 @@ task_info:
   non_deterministic_evals: true
   categories:
     - cli_tool
-    - document_processing
-    - data_extraction
+    - ai_tool
 evaluation_configs:
   - type: score
     test_script: test.py
     test_command: uv run --no-project /project/test.py
-dockerfile_portion: ""
 instructions: |
   Build a tool that can extract documentation from any GitHub repository.
 

@@ -4,13 +4,11 @@ task_info:
   non_deterministic_evals: true
   categories:
     - cli_tool
-    - web_scraping
-    - data_extraction
+    - web
 evaluation_configs:
   - type: score
     test_script: test.py
     test_command: uv run --no-project /project/test.py
-dockerfile_portion: ""
 instructions: |
   I need a tool that monitors CPSC consumer product recalls. It should take a month (like "January 2025" or "2025-01") and create a CSV file cataloging all recalled products for that month.
 
