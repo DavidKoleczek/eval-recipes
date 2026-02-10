@@ -4,13 +4,11 @@ task_info:
   non_deterministic_evals: true
   categories:
     - cli_tool
-    - document_processing
-    - automation
+    - knowledge_worker
 evaluation_configs:
   - type: score
     test_script: test.py
     test_command: uv run --no-project /project/test.py
-dockerfile_portion: ""
 instructions: |
   I've been writing my presentation decks in markdown because it's so much faster than clicking around in PowerPoint, but I need to get them into PowerPoint format to share with my team and for final review. The problem is every markdown-to-slides tool I've tried creates presentations that are a nightmare to edit in PowerPoint - everything is locked down with absolute positioning and you can't move anything without breaking the whole layout.
 

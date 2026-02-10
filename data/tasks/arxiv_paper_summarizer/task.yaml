@@ -4,13 +4,11 @@ task_info:
   non_deterministic_evals: true
   categories:
     - cli_tool
-    - research
-    - document_processing
+    - ai_tool
 evaluation_configs:
   - type: score
     test_script: test.py
     test_command: uv run --no-project /project/test.py
-dockerfile_portion: ""
 instructions: |
   Build a CLI tool that downloads and summarizes academic papers from arxiv.org, then validates the summaries using claim verification.
 

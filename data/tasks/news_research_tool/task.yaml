@@ -4,15 +4,13 @@ task_info:
   non_deterministic_evals: true
   categories:
     - cli_tool
-    - research
-    - web_scraping
+    - ai_tool
 evaluation_configs:
   - type: score
     test_script: test.py
     test_command: uv run --no-project /project/test.py
-dockerfile_portion: ""
 instructions: |
-  Build a tool that uses the ddgs (Dux Distributed Global Search) Python library to find and summarize the latest news on a given topic.
+  Build a tool that uses the ddgs (Dux Distributed Global Search, https://pypi.org/project/ddgs/) Python library to find and summarize the latest news on a given topic.
 
   The tool should:
   1. Use ddgs to search for high quality recent news articles on the specified topic
@@ -25,4 +23,5 @@ instructions: |
   - A summary of the latest developments on the topic with citations and references to source articles
 
   Make sure to include a README.md with usage instructions and examples.
+  You have an OPENAI_API_KEY and ANTHROPIC_API_KEY available for any LLM or image API calls you need to make.
 timeout: 4500

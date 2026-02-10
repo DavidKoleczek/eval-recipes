@@ -14,45 +14,53 @@ from eval_recipes.benchmarking.evaluation.test_utils import (
     write_test_result,
 )
 
-# Define Semantic Test 1: Check Multi-Stage Architecture
+# Define Semantic Test 1: Capabilities and Architecture
 
-AGENT_SDK_DEFINITION = """The solution should use an Agent SDK, such as Claude Agent/Code SDK, Microsoft Agent Framework, Microsoft Amplifier (https://github.com/microsoft/amplifier/tree/next), OpenAI Codex CLI, or others that are similarly capable. These SDKs must have the following functionality:
-- Automatic Context Management to ensure your agent doesn't run out of context.
-- Rich tool ecosystem: File operations, code execution, web search, and MCP extensibility
-- Excels at code generation and effectively gives the agent a "computer" where it can find appropriate files, write and edit files, lint the code, run it, debug, edit, and sometimes take these actions iteratively until it succeeds.
-- APIs like OpenAI's chat completions or Responses API, Anthropic's Messages API, or Azure OpenAI alone are NOT sufficient and should not recieve any credit."""
+AGENT_SDK_NOTE = """\
+NOTE: The solution may use either direct LLM API calls (OpenAI, Anthropic) or an Agent SDK such as \
+Claude Agent/Code SDK, Microsoft Amplifier (https://github.com/microsoft/amplifier/tree/next), OpenAI \
+Codex CLI, or others that are similarly capable. Both approaches are acceptable. If an Agent SDK is used, \
+its built-in LLM capabilities count as satisfying the LLM usage checks for each stage below."""
 
-STEPS_1_ARCHITECTURE = f"""{AGENT_SDK_DEFINITION}
+STEPS_1_CAPABILITIES = f"""\
+{AGENT_SDK_NOTE}
 
-1. Explore the code for the product review tool to understand the architecture.
-2. Check for required dependencies:
-   - Look for dependency files (pyproject.toml, requirements.txt, etc.)
-   - Verify the code uses an Agent SDK (see definition above) for LLM interactions
-   - Verify the code uses ddgs (Dux Distributed Global Search) for finding reviews
-   - Check that these dependencies are actually imported and used in the code
-   - Confirm the AI framework is an Agent SDK with required capabilities, not just a plain API client
-3. Look for evidence of the required multi-stage pipeline:
-   - A writer component that creates the initial draft
-   - An accuracy-reviewer that checks for proper citations and hallucinations
-   - A completeness-reviewer that checks for all required sections
-   - A synthesis-reviewer that checks for coherent analysis
-4. Check if the code has logic for:
-   - Passing drafts between components with feedback
-   - Looping back to writer when reviewers find issues
-   - Re-running all previous reviewers after writer makes changes
-5. Check if there's support for user feedback with [bracket-enclosed-comments]."""
+1. Explore the code under scenarios/product_review_finder/ to understand the full implementation.
+2. Check that the solution uses **ddgs** (Dux Distributed Global Search, \
+https://pypi.org/project/ddgs/) for finding reviews. Verify it is listed in dependency files and \
+actually imported and used in the code.
+3. Check for a **writer** component that uses an LLM to create the initial markdown report draft \
+(consensus, strengths, weaknesses, ratings, quotes, citations, recommendation).
+4. Check for an **accuracy-reviewer** that uses an LLM to verify all claims are properly cited and \
+nothing is misrepresented or fabricated.
+5. Check for a **completeness-reviewer** that uses an LLM to check that all required sections are \
+present and comprehensive enough.
+6. Check for a **synthesis-reviewer** that uses an LLM to verify the report provides coherent analysis \
+across sources and actionable recommendations, not just listing facts.
+7. Check for **feedback loops**: when a reviewer finds issues, the draft goes back to the writer for \
+fixes and then back through the reviewers.
+8. Check for **sequential review**: after the writer makes changes, the draft goes back through all \
+previous reviewers (not just the one that failed).
+9. Check for support for **user feedback** with [bracket-enclosed-comments] that triggers another \
+write-and-review cycle.
+10. Check for a **--category flag** (optional) to narrow down search results.
+11. Verify the solution uses a recent, up-to-date LLM from Anthropic or OpenAI. If an Agent SDK is \
+used, check which model it is configured with. Check the model identifier in the code against these \
+references:
+    - Anthropic models: https://platform.claude.com/docs/en/about-claude/models/overview
+    - OpenAI models: https://platform.openai.com/docs/models"""
 
-RUBRIC_1_ARCHITECTURE = {
-    "agent_sdk_identified": "str - Name of Agent SDK used, or 'None'",
-    "agent_sdk_dependency": "str - (15 points) Does solution use qualifying Agent SDK (Claude Agent/Code SDK, Microsoft Agent Framework, Amplifier, OpenAI Codex CLI) for LLM interactions? Must provide automatic context management, rich tool ecosystem, and iterative code capabilities. NOT plain API clients.",
-    "ddgs_dependency": "str - (10 points) Does the solution use ddgs (Dux Distributed Global Search) for finding reviews? Check both dependency files and actual imports/usage in code.",
-    "writer_component": "str - (12 points) Is there a clear writer component that creates the initial markdown report draft?",
-    "accuracy_reviewer": "str - (12 points) Is there an accuracy-reviewer component that validates citations and checks for hallucinations?",
-    "completeness_reviewer": "str - (12 points) Is there a completeness-reviewer that checks for all required sections?",
-    "synthesis_reviewer": "str - (12 points) Is there a synthesis-reviewer that validates coherent analysis and recommendations?",
-    "feedback_loops": "str - (12 points) Does the code implement feedback loops where reviewers can send work back to the writer?",
-    "sequential_review": "str - (10 points) After writer changes, do drafts go back through all previous reviewers (not just the one that failed)?",
+RUBRIC_1_CAPABILITIES = {
+    "ddgs_dependency": "str - (10 points) Does the solution use ddgs for finding reviews? Check both dependency files and actual imports/usage in code.",
+    "writer_uses_llm": "str - (10 points) Is there a writer component that uses an LLM to create the initial markdown report draft? Agent SDKs with built-in LLM capabilities count.",
+    "accuracy_reviewer_uses_llm": "str - (10 points) Is there an accuracy-reviewer that uses an LLM to validate citations and check for hallucinations? Agent SDKs with built-in LLM capabilities count.",
+    "completeness_reviewer_uses_llm": "str - (10 points) Is there a completeness-reviewer that uses an LLM to check for all required sections? Agent SDKs with built-in LLM capabilities count.",
+    "synthesis_reviewer_uses_llm": "str - (10 points) Is there a synthesis-reviewer that uses an LLM to validate coherent analysis and recommendations? Agent SDKs with built-in LLM capabilities count.",
+    "feedback_loops": "str - (10 points) Does the code implement feedback loops where reviewers can send work back to the writer?",
+    "sequential_review": "str - (5 points) After writer changes, do drafts go back through all previous reviewers (not just the one that failed)?",
     "user_feedback": "str - (5 points) Is there support for user feedback with bracket-enclosed comments?",
+    "category_flag": "str - (5 points) Is there a --category flag to narrow down search results?",
+    "uses_recent_model": "str - (25 points) Does it use a recent model from Anthropic (see https://platform.claude.com/docs/en/about-claude/models/overview) or OpenAI (see https://platform.openai.com/docs/models)? If an Agent SDK is used, check which model it is configured with. 5 points partial credit if a model is used but it is not recent.",
     "score": "float - Score between 0 and 100 based on the above criteria. Sum the points earned from each criterion.",
 }
 
@@ -126,10 +134,10 @@ async def run_test(test_id: str, output_dir: Path, instructions_file: Path | Non
     instructions = get_instructions_from_file_or_default(instructions_file=instructions_file)
 
     try:
-        logger.info("Running semantic test 1: Checking multi-stage architecture...")
+        logger.info("Running semantic test 1: Checking capabilities and architecture...")
         result_1 = await semantic_test(
-            steps=STEPS_1_ARCHITECTURE,
-            rubric=RUBRIC_1_ARCHITECTURE,
+            steps=STEPS_1_CAPABILITIES,
+            rubric=RUBRIC_1_CAPABILITIES,
             context=instructions,
             working_dir=Path("/project"),
         )
@@ -148,7 +156,7 @@ async def run_test(test_id: str, output_dir: Path, instructions_file: Path | Non
 
         metadata = {
             "instructions": instructions,
-            "semantic_test_1_architecture": {
+            "semantic_test_1_capabilities": {
                 "score": result_1.score,
                 "details": result_1.metadata,
             },
@@ -158,7 +166,7 @@ async def run_test(test_id: str, output_dir: Path, instructions_file: Path | Non
             },
             "final_score": final_score,
             "scoring_weights": {
-                "architecture": "40%",
+                "capabilities": "40%",
                 "run_and_validate": "60%",
             },
         }

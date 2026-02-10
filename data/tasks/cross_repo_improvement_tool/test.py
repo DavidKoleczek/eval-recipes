@@ -47,9 +47,9 @@ RUBRIC_1_ARCHITECTURE_REVIEW = {
 }
 
 
-# Define Semantic Test 2: Run Tool & Validate Output Structure
+# Define Semantic Test 2: Run Tool & Validate Output
 
-STEPS_2_RUN_AND_VALIDATE_STRUCTURE = f"""1. Find the README file that explains how to use the cross-repo improvement tool.
+STEPS_2_RUN_AND_VALIDATE = f"""1. Find the README file that explains how to use the cross-repo improvement tool.
 2. Based on the README, determine the correct command to run the tool with these parameters:
    - Source repo: {SOURCE_REPO}
    - Target repo: {TARGET_REPO}
@@ -71,57 +71,38 @@ STEPS_2_RUN_AND_VALIDATE_STRUCTURE = f"""1. Find the README file that explains h
      * Sufficient detail for handoff to a team without source access
    - Check if file/directory names are based on the input context (repos and request)
    - Look for evidence of review iterations (feedback files, iteration logs, etc.)
-6. Verify the tool completed successfully and produced organized, structured output."""
-
-RUBRIC_2_RUN_AND_VALIDATE_STRUCTURE = {
-    "readme_exists": "str - (5 points) Does a comprehensive README exist with clear usage instructions?",
-    "tool_runs_successfully": "str - (20 points) Does the tool run without fatal errors?",
-    "repomix_execution": "str - (10 points) Is there evidence the tool ran repomix on both repositories?",
-    "comprehensive_analysis_file": "str - (15 points) Does output include comprehensive analysis with high-level to detailed opportunity breakdown and rationale?",
-    "separate_proposal_files": "str - (15 points) Are individual opportunities documented in separate detailed proposal files?",
-    "contextual_naming": "str - (10 points) Are output directories and files named based on the repos and request context?",
-    "implementation_guidance": "str - (15 points) Do proposals include detailed implementation guidance suitable for handoff?",
-    "review_iteration_evidence": "str - (10 points) Is there evidence of feedback loop iterations (feedback files, version history, iteration logs)?",
-    "score": "float - Score between 0 and 100. Sum the points earned from each criterion above.",
-}
-
-
-# Define Semantic Test 3: Deep Quality Validation
-
-STEPS_3_DEEP_QUALITY_VALIDATION = f"""1. Find the README file that explains how to use the cross-repo improvement tool.
-2. Based on the README, determine the correct command to run the tool with these parameters:
-   - Source repo: {SOURCE_REPO}
-   - Target repo: {TARGET_REPO}
-   - Improvement request: "{IMPROVEMENT_REQUEST}"
-3. Run the command. This will take 10-20 minutes as it runs repomix and performs multi-phase analysis.
-4. After completion, deeply examine the comprehensive analysis file:
+6. Deeply examine the comprehensive analysis file for quality:
    - Are the identified opportunities actually present in github/spec-kit's codebase/patterns?
    - Do the opportunities make sense for github/copilot-cli's purpose and architecture?
    - Is the analysis grounded in actual code, patterns, and design from both repos (not generic advice)?
    - Does it demonstrate deep understanding of both tools' purposes and design philosophies?
-5. Select 2-3 individual proposal files and analyze them deeply:
+7. Select 2-3 individual proposal files and analyze them deeply:
    - Specificity: Do proposals reference actual code, patterns, or structures from spec-kit?
    - Applicability: Are suggestions realistic and appropriate for copilot-cli's architecture?
    - Implementation guidance: Is the guidance specific enough for a team to implement?
    - Completeness: Could a team implement these proposals without accessing spec-kit's source code?
    - Value: Would these improvements genuinely benefit copilot-cli users and align with its goals?
-6. Check for review quality evidence:
+8. Check for review quality evidence:
    - Are proposals grounded to both repos (not generic "best practices")?
    - Do suggestions align with copilot-cli's existing patterns and philosophy?
    - Is there evidence that multiple reviewers influenced the final quality?
-7. Overall assessment:
+9. Overall assessment:
    - Would the GitHub team maintaining copilot-cli find this analysis valuable?
-   - Are suggestions actionable, well-reasoned, and worth considering?
-   - Does the analysis justify the tool's complex multi-reviewer feedback loop architecture?"""
+   - Are suggestions actionable, well-reasoned, and worth considering?"""
 
-RUBRIC_3_DEEP_QUALITY_VALIDATION = {
-    "opportunities_grounded_in_source": "str - (20 points) Do opportunities reference actual patterns/code from spec-kit (not generic suggestions)?",
-    "appropriate_for_target": "str - (15 points) Do suggestions make sense for copilot-cli's purpose, architecture, and user experience?",
-    "deep_understanding": "str - (15 points) Does analysis demonstrate deep understanding of both tools' designs and philosophies?",
-    "proposal_specificity": "str - (15 points) Do proposals include specific references to source patterns rather than generic advice?",
-    "implementation_completeness": "str - (15 points) Is implementation guidance detailed enough for handoff without requiring source access?",
-    "actionability": "str - (10 points) Are suggestions realistic, actionable, and well-reasoned?",
-    "overall_value": "str - (10 points) Would the GitHub copilot-cli team find this analysis genuinely valuable?",
+RUBRIC_2_RUN_AND_VALIDATE = {
+    "readme_exists": "str - (5 points) Does a comprehensive README exist with clear usage instructions?",
+    "tool_runs_successfully": "str - (10 points) Does the tool run without fatal errors?",
+    "repomix_execution": "str - (5 points) Is there evidence the tool ran repomix on both repositories?",
+    "comprehensive_analysis_file": "str - (10 points) Does output include comprehensive analysis with high-level to detailed opportunity breakdown and rationale?",
+    "separate_proposal_files": "str - (10 points) Are individual opportunities documented in separate detailed proposal files?",
+    "contextual_naming": "str - (5 points) Are output directories and files named based on the repos and request context?",
+    "review_iteration_evidence": "str - (5 points) Is there evidence of feedback loop iterations (feedback files, version history, iteration logs)?",
+    "opportunities_grounded_in_source": "str - (15 points) Do opportunities reference actual patterns/code from spec-kit (not generic suggestions)?",
+    "appropriate_for_target": "str - (10 points) Do suggestions make sense for copilot-cli's purpose, architecture, and user experience?",
+    "deep_understanding": "str - (5 points) Does analysis demonstrate deep understanding of both tools' designs and philosophies?",
+    "proposal_specificity_and_guidance": "str - (10 points) Do proposals include specific references to source patterns with implementation guidance detailed enough for handoff without requiring source access?",
+    "actionability_and_value": "str - (10 points) Are suggestions realistic, actionable, well-reasoned, and genuinely valuable to the copilot-cli team?",
     "score": "float - Score between 0 and 100. Sum the points earned from each criterion above.",
 }
 
@@ -161,25 +142,16 @@ async def run_test(test_id: str, output_dir: Path, instructions_file: Path | Non
             working_dir=Path("/project"),
         )
 
-        logger.info("Running semantic test 2: Run Tool & Validate Output Structure...")
+        logger.info("Running semantic test 2: Run Tool & Validate Output...")
         result_2 = await semantic_test(
-            steps=STEPS_2_RUN_AND_VALIDATE_STRUCTURE,
-            rubric=RUBRIC_2_RUN_AND_VALIDATE_STRUCTURE,
-            context=instructions,
-            working_dir=Path("/project"),
-        )
-
-        logger.info("Running semantic test 3: Deep Quality Validation...")
-        result_3 = await semantic_test(
-            steps=STEPS_3_DEEP_QUALITY_VALIDATION,
-            rubric=RUBRIC_3_DEEP_QUALITY_VALIDATION,
+            steps=STEPS_2_RUN_AND_VALIDATE,
+            rubric=RUBRIC_2_RUN_AND_VALIDATE,
             context=instructions,
             working_dir=Path("/project"),
         )
 
         # Calculate final score as weighted average
-        # Weights: architecture (20%), structure (35%), quality (45%)
-        final_score = result_1.score * 0.20 + result_2.score * 0.35 + result_3.score * 0.45
+        final_score = result_1.score * 0.30 + result_2.score * 0.70
 
         metadata = {
             "instructions": instructions,
@@ -192,19 +164,14 @@ async def run_test(test_id: str, output_dir: Path, instructions_file: Path | Non
                 "score": result_1.score,
                 "details": result_1.metadata,
             },
-            "semantic_test_2_run_and_validate_structure": {
+            "semantic_test_2_run_and_validate": {
                 "score": result_2.score,
                 "details": result_2.metadata,
             },
-            "semantic_test_3_deep_quality_validation": {
-                "score": result_3.score,
-                "details": result_3.metadata,
-            },
             "final_score": final_score,
             "scoring_weights": {
-                "architecture_review": "20%",
-                "run_and_validate_structure": "35%",
-                "deep_quality_validation": "45%",
+                "architecture_review": "30%",
+                "run_and_validate": "70%",
             },
         }
 

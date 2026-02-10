@@ -4,12 +4,11 @@ task_info:
   non_deterministic_evals: true
   categories:
     - cli_tool
-    - writing
+    - ai_tool
 evaluation_configs:
   - type: score
     test_script: test.py
     test_command: uv run --no-project /project/test.py
-dockerfile_portion: ""
 instructions: |
   Create me a CLI tool that will take bullet points or rough notes about what I want to communicate and draft an email in my communication style. Place all the code under the directory scenarios/email_drafting.
 
@@ -28,6 +27,7 @@ instructions: |
   Once it all passes, write the final version out for me to review. Give me the opportunity to mark up the email with [bracket-enclosed-comments] and then pass it back to the tool to incorporate my feedback as the final reviewer - start back with the writer and then review again with the other reviewers, including passing my feedback along with the other context they previously had.
 
   Finally, create a README.md under scenarios/email_drafting/ that gives examples of each of the commands that can be used to run the tool.
+  You have an OPENAI_API_KEY and ANTHROPIC_API_KEY available for any LLM API calls you need to make.
 test_time_files:
   - source: test_time_data
     dest: /project

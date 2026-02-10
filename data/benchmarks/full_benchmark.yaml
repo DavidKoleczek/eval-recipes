@@ -9,16 +9,19 @@ comparison_benchmark:
         - claude_code
         - gh_cli
         - amplifier_foundation
+        - openai_codex
     - task_name: ppt-2
       agent_ids:
         - claude_code
         - gh_cli
         - amplifier_foundation
+        - openai_codex
     - task_name: ppt-3
       agent_ids:
         - claude_code
         - gh_cli
         - amplifier_foundation
+        - openai_codex
 
 score_benchmark:
   benchmark_type: score
@@ -29,14 +32,19 @@ score_benchmark:
       task_names:
         - arxiv_conclusion_extraction
         - arxiv_paper_summarizer
+        - chiptune_generator
         - code-discrepancy-docs-knack
         - code-discrepancy-docstrings-grasp
         - code-discrepancy-tutorials-grasp
         - cpsc_recall_monitor
         - cross_repo_improvement_tool
         - email_drafting
+        - energy_forecast_new_england
         - gdpval_extraction
+        - git_changelog_generator
         - github_docs_extractor
+        - image_tagging
+        - ipo_tracker
         - linkedin_drafting
         - markdown_deck_converter
         - news_research_tool
@@ -45,6 +53,7 @@ score_benchmark:
         - pdf-hr-q3
         - pdf-hr-q4
         - pdf-hr-q5
+        - pixel_art_generator
         - product_review_finder
         - repo_embedding_server
         - sec_10q_extractor
@@ -54,14 +63,19 @@ score_benchmark:
       task_names:
         - arxiv_conclusion_extraction
         - arxiv_paper_summarizer
+        - chiptune_generator
         - code-discrepancy-docs-knack
         - code-discrepancy-docstrings-grasp
         - code-discrepancy-tutorials-grasp
         - cpsc_recall_monitor
         - cross_repo_improvement_tool
         - email_drafting
+        - energy_forecast_new_england
         - gdpval_extraction
+        - git_changelog_generator
         - github_docs_extractor
+        - image_tagging
+        - ipo_tracker
         - linkedin_drafting
         - markdown_deck_converter
         - news_research_tool
@@ -70,6 +84,7 @@ score_benchmark:
         - pdf-hr-q3
         - pdf-hr-q4
         - pdf-hr-q5
+        - pixel_art_generator
         - product_review_finder
         - repo_embedding_server
         - sec_10q_extractor
@@ -79,14 +94,19 @@ score_benchmark:
       task_names:
         - arxiv_conclusion_extraction
         - arxiv_paper_summarizer
+        - chiptune_generator
         - code-discrepancy-docs-knack
         - code-discrepancy-docstrings-grasp
         - code-discrepancy-tutorials-grasp
         - cpsc_recall_monitor
         - cross_repo_improvement_tool
         - email_drafting
+        - energy_forecast_new_england
         - gdpval_extraction
+        - git_changelog_generator
         - github_docs_extractor
+        - image_tagging
+        - ipo_tracker
         - linkedin_drafting
         - markdown_deck_converter
         - news_research_tool
@@ -95,6 +115,38 @@ score_benchmark:
         - pdf-hr-q3
         - pdf-hr-q4
         - pdf-hr-q5
+        - pixel_art_generator
+        - product_review_finder
+        - repo_embedding_server
+        - sec_10q_extractor
+        - style_blender
+      trials: 1
+    - agent_id: openai_codex
+      task_names:
+        - arxiv_conclusion_extraction
+        - arxiv_paper_summarizer
+        - chiptune_generator
+        - code-discrepancy-docs-knack
+        - code-discrepancy-docstrings-grasp
+        - code-discrepancy-tutorials-grasp
+        - cpsc_recall_monitor
+        - cross_repo_improvement_tool
+        - email_drafting
+        - energy_forecast_new_england
+        - gdpval_extraction
+        - git_changelog_generator
+        - github_docs_extractor
+        - image_tagging
+        - ipo_tracker
+        - linkedin_drafting
+        - markdown_deck_converter
+        - news_research_tool
+        - pdf-hr-q1
+        - pdf-hr-q2
+        - pdf-hr-q3
+        - pdf-hr-q4
+        - pdf-hr-q5
+        - pixel_art_generator
         - product_review_finder
         - repo_embedding_server
         - sec_10q_extractor

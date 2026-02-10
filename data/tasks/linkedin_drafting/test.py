@@ -14,44 +14,52 @@ from eval_recipes.benchmarking.evaluation.test_utils import (
     write_test_result,
 )
 
-# Define Semantic Test 1: Dependencies and Architecture
+# Define Semantic Test 1: Capabilities and Architecture
 
-AGENT_SDK_DEFINITION = """The solution should use an Agent SDK, such as Claude Agent/Code SDK, Microsoft Agent Framework, Microsoft Amplifier (https://github.com/microsoft/amplifier/tree/next), OpenAI Codex CLI, or others that are similarly capable. These SDKs must have the following functionality:
-- Automatic Context Management to ensure your agent doesn't run out of context.
-- Rich tool ecosystem: File operations, code execution, web search, and MCP extensibility
-- Excels at code generation and effectively gives the agent a "computer" where it can find appropriate files, write and edit files, lint the code, run it, debug, edit, and sometimes take these actions iteratively until it succeeds.
-- APIs like OpenAI's chat completions or Responses API, Anthropic's Messages API, or Azure OpenAI alone are NOT sufficient and should not recieve any credit."""
+AGENT_SDK_NOTE = """\
+NOTE: The solution may use either direct LLM API calls (OpenAI, Anthropic) or an Agent SDK such as \
+Claude Agent/Code SDK, Microsoft Amplifier (https://github.com/microsoft/amplifier/tree/next), OpenAI \
+Codex CLI, or others that are similarly capable. Both approaches are acceptable. If an Agent SDK is used, \
+its built-in LLM capabilities count as satisfying the LLM usage checks for each stage below."""
 
-STEPS_1_DEPENDENCIES = f"""{AGENT_SDK_DEFINITION}
+STEPS_1_CAPABILITIES = f"""\
+{AGENT_SDK_NOTE}
 
-1. Explore the code that was created to understand the implementation.
-2. Look for where dependencies are defined (e.g., pyproject.toml, requirements.txt, package.json, etc.)
-3. Check if the solution uses an Agent SDK (see definition above):
-   - Check which dependencies are listed in dependency files
-   - Verify these dependencies are being imported in the code
-   - Confirm they are actually used in the implementation (not just imported)
-   - Verify the SDK provides the required agent capabilities, not just plain API calls
-4. Check if the solution uses an image generation API:
-   - Look for OpenAI image generation API usage (DALL-E 3, gpt-image-1, or similar)
-   - Check if the code actually calls these APIs to generate images (not just create prompts)
-   - Verify imports and actual usage in the code (e.g., openai.images.generate or similar API calls)
-   - Confirm the images are actually being generated, not just prompts created
-5. Look for evidence of separate stages or agents in the architecture:
-   - Check if there are separate components/functions/modules for key workflow parts:
-     * Image generation stage
-     * Research for references stage
-     * Review against existing style stage
-   - This could be implemented as:
-     * Multiple agents in an agentic loop
-     * Separate prompts for different stages
-     * Modular functions that handle distinct parts of the workflow
-   - The solution should NOT be just one monolithic prompt doing everything"""
+1. Explore the code to understand the full implementation.
+2. Check that it reads past posts from a directory to learn the user's writing style and tone.
+3. Check that it accepts topic notes as input.
+4. Check for a **topic/metaphor discovery** stage that uses an LLM to pick topics and find a metaphor or \
+story that makes technical concepts accessible.
+5. Check for a **drafting** stage that uses an LLM to write creative paragraphs and draft explanations \
+for any jargon.
+6. Check for an **image generation** stage that uses an image generation API (OpenAI DALL-E 3, \
+gpt-image-1, or similar) to actually produce images, not just create prompts. Verify imports and actual \
+API calls in the code (e.g., openai.images.generate or similar).
+7. Check for a **research/references** stage that uses an LLM to find references and incorporate them \
+into the post.
+8. Check for a **style matching** stage that uses an LLM to clean up the draft to match the user's \
+previous writing style from past posts.
+9. Check for a **review/editing** stage that uses an LLM to check logic and reasoning and do a final review.
+10. Check for a social media version output option (a shortened version of the post).
+11. Check that the implementation has separate stages or components -- not one monolithic prompt doing \
+everything. This could be multiple agents, separate prompts, or modular functions.
+12. Verify the solution uses a recent, up-to-date LLM from Anthropic or OpenAI. If an Agent SDK is used, \
+check which model it is configured with. Check the model identifier in the code against these references:
+    - Anthropic models: https://platform.claude.com/docs/en/about-claude/models/overview
+    - OpenAI models: https://platform.openai.com/docs/models"""
 
-RUBRIC_1_DEPENDENCIES = {
-    "agent_sdk_identified": "str - Name of Agent SDK found, or 'None'",
-    "agent_sdk_usage": "str - (35 points) Does solution use qualifying Agent SDK (Claude Agent/Code SDK, Microsoft Agent Framework, Amplifier, OpenAI Codex CLI)? Must provide automatic context management, rich tool ecosystem, and iterative code capabilities. NOT plain API clients. Check dependency files, imports, and actual usage.",
-    "image_generation_api": "str - (35 points) Does the solution use OpenAI's image generation API (DALL-E 3, gpt-image-1, or similar)? Check dependencies and actual API calls in code. Verify images are actually generated, not just prompts.",
-    "separate_stages_or_agents": "str - (30 points) Does the solution have evidence of separate stages/agents for key workflow parts (image generation, research for references, review against existing style)? Could be agentic loops, separate prompts, or modular functions. Not just one monolithic prompt.",
+RUBRIC_1_CAPABILITIES = {
+    "reads_past_posts": "str - (5 points) Does the code read past posts from a directory to learn style/tone?",
+    "accepts_topic_notes": "str - (5 points) Does the code accept topic notes as input?",
+    "topic_metaphor_discovery": "str - (10 points) Is there a stage that uses an LLM to pick topics and find metaphors/stories for technical concepts? Agent SDKs with built-in LLM capabilities count.",
+    "drafting_stage": "str - (10 points) Is there a stage that uses an LLM to write creative paragraphs and draft jargon explanations? Agent SDKs with built-in LLM capabilities count.",
+    "image_generation": "str - (15 points) Does the solution use an image generation API (DALL-E 3, gpt-image-1, or similar) to actually produce images? Verify actual API calls, not just prompt creation.",
+    "research_references": "str - (10 points) Is there a stage that uses an LLM to find references and incorporate them? Agent SDKs with built-in LLM capabilities count.",
+    "style_matching": "str - (5 points) Is there a stage that uses an LLM to match the user's past writing style? Agent SDKs with built-in LLM capabilities count.",
+    "review_editing": "str - (5 points) Is there a stage that uses an LLM to check logic/reasoning and do a final review? Agent SDKs with built-in LLM capabilities count.",
+    "social_media_option": "str - (5 points) Does the tool have an option to output a shortened social media version?",
+    "separate_stages": "str - (5 points) Does the implementation have separate stages/components (not one monolithic prompt)? Could be agentic loops, separate prompts, or modular functions.",
+    "uses_recent_model": "str - (25 points) Does it use a recent model from Anthropic (see https://platform.claude.com/docs/en/about-claude/models/overview) or OpenAI (see https://platform.openai.com/docs/models)? If an Agent SDK is used, check which model it is configured with. 5 points partial credit if a model is used but it is not recent.",
     "score": "float - Score between 0 and 100 based on the above criteria. Sum the points earned from each criterion.",
 }
 
@@ -132,10 +140,10 @@ async def run_test(test_id: str, output_dir: Path, instructions_file: Path | Non
     instructions = get_instructions_from_file_or_default(instructions_file=instructions_file)
 
     try:
-        logger.info("Running semantic test 1: Checking dependencies and architecture...")
+        logger.info("Running semantic test 1: Checking capabilities and architecture...")
         result_1 = await semantic_test(
-            steps=STEPS_1_DEPENDENCIES,
-            rubric=RUBRIC_1_DEPENDENCIES,
+            steps=STEPS_1_CAPABILITIES,
+            rubric=RUBRIC_1_CAPABILITIES,
             context=instructions,
             working_dir=Path("/project"),
         )
@@ -154,7 +162,7 @@ async def run_test(test_id: str, output_dir: Path, instructions_file: Path | Non
 
         metadata = {
             "instructions": instructions,
-            "semantic_test_1_dependencies_and_architecture": {
+            "semantic_test_1_capabilities_and_architecture": {
                 "score": result_1.score,
                 "details": result_1.metadata,
             },
@@ -164,7 +172,7 @@ async def run_test(test_id: str, output_dir: Path, instructions_file: Path | Non
             },
             "final_score": final_score,
             "scoring_weights": {
-                "dependencies_and_architecture": "30%",
+                "capabilities_and_architecture": "30%",
                 "run_validate_quality": "70%",
             },
         }

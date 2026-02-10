@@ -14,30 +14,48 @@ from eval_recipes.benchmarking.evaluation.test_utils import (
     write_test_result,
 )
 
-# Define Semantic Test 1 - Agent SDK Check
+AGENT_SDK_NOTE = """\
+NOTE: The solution may use either direct LLM API calls (OpenAI, Anthropic) or an Agent SDK such as \
+Claude Agent/Code SDK, Microsoft Amplifier (https://github.com/microsoft/amplifier/tree/next), OpenAI \
+Codex CLI, or others that are similarly capable. Both approaches are acceptable. If an Agent SDK is used, \
+its built-in LLM capabilities count as satisfying the LLM usage checks for each stage below."""
 
-AGENT_SDK_DEFINITION = """The solution should use an Agent SDK, such as Claude Agent/Code SDK, Microsoft Agent Framework, Microsoft Amplifier (https://github.com/microsoft/amplifier/tree/next), OpenAI Codex CLI, or others that are similarly capable. These SDKs must have the following functionality:
-- Automatic Context Management to ensure your agent doesn't run out of context.
-- Rich tool ecosystem: File operations, code execution, web search, and MCP extensibility
-- Excels at code generation and effectively gives the agent a "computer" where it can find appropriate files, write and edit files, lint the code, run it, debug, edit, and sometimes take these actions iteratively until it succeeds.
-- APIs like OpenAI's chat completions or Responses API, Anthropic's Messages API, or Azure OpenAI alone are NOT sufficient and should not recieve any credit."""
+STEPS_1_LLM_PIPELINE = f"""\
+{AGENT_SDK_NOTE}
 
-STEPS_1_AGENT_SDK_DEPENDENCY = f"""{AGENT_SDK_DEFINITION}
+1. Explore the code under scenarios/email_drafting/ to understand the full implementation.
+2. Check that it reads past emails from a directory and source notes/bullet points from a file.
+3. Check for a **writer** stage that uses an LLM to draft an email based on the notes and past email style.
+4. Check for a **content-reviewer** stage that uses an LLM to verify all key points from the notes are covered \
+and nothing important was missed or misrepresented.
+5. Check for a **tone-reviewer** stage that uses an LLM to verify the draft matches the user's communication \
+style, formality level, and typical email patterns from past emails.
+6. Check for a **brevity-reviewer** stage that uses an LLM to verify email length is appropriate for the \
+selected mode and is not unnecessarily verbose.
+7. Check for revision logic: if any reviewer finds issues, the draft should go back to the writer and through \
+the reviewers again.
+8. Check for a mode flag (--mode concise|standard|detailed) that controls email length.
+9. Check for an optional recipient parameter that prioritizes past emails to/from that specific recipient.
+10. Check for a feedback loop: the user can mark up the draft with [bracket-enclosed-comments] and pass it \
+back to the tool to incorporate feedback, restarting the write-and-review cycle.
+11. Verify the solution uses a recent, up-to-date LLM from Anthropic or OpenAI. If an Agent SDK is used, \
+check which model it is configured with. Check the model identifier in the code against these references:
+    - Anthropic models: https://platform.claude.com/docs/en/about-claude/models/overview
+    - OpenAI models: https://platform.openai.com/docs/models"""
 
-1. Explore the code that the agent generated in this project directory to see if it uses an Agent SDK.
-2. Look for where dependencies are defined (e.g., pyproject.toml, requirements.txt, package.json, etc.)
-3. Check which dependencies are being imported and actually used in the code to create the email drafting solution.
-4. Verify the SDK provides the required agent capabilities: automatic context management, rich tool ecosystem (file operations, code execution), and iterative code generation/debugging capabilities.
-5. Confirm it is NOT just a plain API client (like openai.OpenAI() or anthropic.Anthropic() without agent features)."""
-
-RUBRIC_1_AGENT_SDK_DEPENDENCY = {
-    "agent_sdk_identified": "str - Name of the Agent SDK found (e.g., 'Claude Agent SDK', 'Microsoft Agent Framework', 'Amplifier', 'OpenAI Codex CLI', 'None')",
-    "has_context_management": "bool - Does it provide automatic context management?",
-    "has_tool_ecosystem": "bool - Does it provide rich tool ecosystem (file operations, code execution, web search)?",
-    "has_iterative_capabilities": "bool - Can it iteratively write, run, debug, and edit code?",
-    "evidence": "str - Brief description of evidence found (dependency files, imports, usage patterns)",
-    "justification": "str - Detailed explanation of whether this qualifies as an Agent SDK based on the criteria",
-    "score": "float - Score 100 if the solution uses a qualifying Agent SDK with all required capabilities. Score 0 if it uses plain API clients or lacks required capabilities.",
+RUBRIC_1_LLM_PIPELINE = {
+    "reads_past_emails": "str - (5 points) Does the code read past emails from a directory?",
+    "reads_source_notes": "str - (5 points) Does the code read source notes/bullet points from a file?",
+    "writer_uses_llm": "str - (10 points) Is there a writer stage that uses an LLM to draft an email matching the user's style? Agent SDKs with built-in LLM capabilities count.",
+    "content_reviewer_uses_llm": "str - (10 points) Is there a content-reviewer stage that uses an LLM to verify key points are covered? Agent SDKs with built-in LLM capabilities count.",
+    "tone_reviewer_uses_llm": "str - (10 points) Is there a tone-reviewer stage that uses an LLM to verify the draft matches communication style? Agent SDKs with built-in LLM capabilities count.",
+    "brevity_reviewer_uses_llm": "str - (5 points) Is there a brevity-reviewer stage that uses an LLM to verify appropriate length for the selected mode? Agent SDKs with built-in LLM capabilities count.",
+    "revision_loop": "str - (10 points) If a reviewer finds issues, does the draft go back to the writer and through reviewers again?",
+    "mode_flag": "str - (5 points) Is there a mode flag (concise/standard/detailed) controlling email length?",
+    "recipient_parameter": "str - (5 points) Is there an optional recipient parameter that prioritizes matching past emails?",
+    "feedback_loop": "str - (5 points) Can the user mark up the draft with [bracket-enclosed-comments] and pass it back?",
+    "uses_recent_model": "str - (25 points) Does it use a recent model from Anthropic (see https://platform.claude.com/docs/en/about-claude/models/overview) or OpenAI (see https://platform.openai.com/docs/models)? If an Agent SDK is used, check which model it is configured with. 5 points partial credit if a model is used but it is not recent.",
+    "score": "float - Score between 0 and 100 based on the above criteria. Sum the points earned from each criterion.",
 }
 
 # Define Semantic Test 2
@@ -91,10 +109,10 @@ async def run_test(test_id: str, output_dir: Path, instructions_file: Path | Non
     instructions = get_instructions_from_file_or_default(instructions_file=instructions_file)
 
     try:
-        logger.info("Running semantic test 1 to check for Agent SDK dependency...")
+        logger.info("Running semantic test 1 to verify LLM pipeline implementation...")
         result_1 = await semantic_test(
-            steps=STEPS_1_AGENT_SDK_DEPENDENCY,
-            rubric=RUBRIC_1_AGENT_SDK_DEPENDENCY,
+            steps=STEPS_1_LLM_PIPELINE,
+            rubric=RUBRIC_1_LLM_PIPELINE,
             context=instructions,
             working_dir=Path("/project"),
         )

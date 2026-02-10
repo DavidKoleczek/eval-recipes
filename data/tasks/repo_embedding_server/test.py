@@ -26,18 +26,18 @@ STEPS_1_DEPENDENCIES_AND_ARCHITECTURE = f"""1. Explore the code in the project d
 3. Verify the following dependencies are installed and used:
    - FastAPI for the web server
    - ChromaDB Python library for vector storage
-   - Ollama client library (`ollama` in Python)
 4. Check the code to confirm:
-   - The Ollama model `{EXPECTED_OLLAMA_MODEL}` is specified
-   - ChromaDB is used directly as a Python library (not running as a separate service) with either disk-based or in-memory storage
+   - The Ollama model `{EXPECTED_OLLAMA_MODEL}` is used for embeddings (via the ollama Python library, \
+direct HTTP calls to Ollama's local API, or any other method of calling Ollama)
+   - ChromaDB is used directly as a Python library (not running as a separate service) with either \
+disk-based or in-memory storage
    - The server reads from a file called repos.txt
 5. Verify basic server structure exists (FastAPI app, routes/endpoints defined)."""
 
 RUBRIC_1_DEPENDENCIES_AND_ARCHITECTURE = {
-    "fastapi_dependency": "str - (20 points) Is FastAPI installed and used for the web server?",
-    "chromadb_dependency": "str - (20 points) Is ChromaDB Python library installed and used for vector storage?",
-    "ollama_client_dependency": "str - (15 points) Is an Ollama client library installed and used?",
-    "correct_ollama_model": f"str - (15 points) Is the model `{EXPECTED_OLLAMA_MODEL}` specified in the code?",
+    "fastapi_dependency": "str - (25 points) Is FastAPI installed and used for the web server?",
+    "chromadb_dependency": "str - (25 points) Is ChromaDB Python library installed and used for vector storage?",
+    "correct_ollama_model": f"str - (20 points) Is the Ollama model `{EXPECTED_OLLAMA_MODEL}` specified in the code and used for generating embeddings?",
     "chromadb_usage": "str - (15 points) Is ChromaDB used directly as a library (not as a separate service) with disk and/or in-memory storage?",
     "repos_txt_reading": "str - (10 points) Does the code read from a repos.txt file?",
     "server_structure": "str - (5 points) Does a basic FastAPI server structure with endpoints exist?",
